@@ -1,0 +1,5 @@
+---
+description: Diszig canonical engineering invariants
+alwaysApply: true
+---
+Read and follow @AGENTS.md (root). If the reference does not expand, open AGENTS.md before editing. Its golden rules and AI_POLICY.md apply to every change. Use the relevant canonical skill under `.agents/skills/`; do not duplicate project policy or expose `.private/` material.

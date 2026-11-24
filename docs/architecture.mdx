@@ -1,0 +1,31 @@
+---
+title: 'Architecture'
+---
+
+The intended SDK has a thin public client facade and independently usable lower-level modules. Protocol types are shared, REST handles request scheduling and rate limits, and Gateway handles session recovery and event delivery. Builders and interaction helpers should work without requiring a full Gateway client where appropriate.
+
+The intended repository is a Zig monorepo. A future root build will coordinate real packages; new modules are introduced when their functionality exists. The documentation site is a separate toolchain, not a runtime dependency.
+
+The planned SDK layout is:
+
+```text
+build.zig / build.zig.zon  Root build and consumer package
+src/root.zig              Public entrypoint
+packages/protocol/        Shared wire types, IDs, permissions and routes
+packages/rest/            HTTP transport, authentication and request scheduling
+packages/gateway/         Sessions, recovery and event delivery
+packages/builders/        Validated message and interaction payloads
+packages/interactions/    Response lifecycle and signed HTTP delivery
+packages/client/          Client facade, managers and cache policy
+packages/sharding/        Native shards and local worker supervision
+packages/voice/           Optional voice integration
+examples/                 Compiled consumer examples
+tests/                    Cross-package fixtures and failure tests
+benchmarks/               Reproducible measurements
+```
+
+These paths describe responsibilities, not existing packages. Only documentation, governance, agent workflows and repository maintenance metadata exist today. The first implementation should prove a protocol module and an external consumer before expanding the package tree.
+
+Protocol types sit at the bottom of the dependency graph. REST, Gateway and builders consume them; interactions and the client compose lower-level modules. Sharding shares Gateway contracts across native and hybrid modes. Optional voice must not become a dependency of a basic REST consumer. Package names and public signatures remain subject to compiler-tested design.
+
+Memory ownership, cancellation, error handling and resource bounds are part of the public contract. We will publish precise signatures and examples once the compiler-tested implementation exists.

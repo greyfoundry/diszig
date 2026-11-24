@@ -1,0 +1,15 @@
+---
+title: 'Protocol references'
+---
+
+## Official Discord documentation
+
+The primary protocol reference is [discord/discord-api-docs](https://github.com/discord/discord-api-docs), Discord's official developer documentation repository. The rendered documentation is available at [Discord for Developers](https://docs.discord.com/developers/intro).
+
+The initial research baseline is pinned to commit [`5a61ef8ebaf5e5702d3dc80e052d57001229ab1b`](https://github.com/discord/discord-api-docs/tree/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b), acquired on 2026-11-24. Use immutable file links under this revision when recording a design decision. Review later upstream changes explicitly; a pinned reference does not freeze Discord's live API or prove that Diszig implements it.
+
+Official protocol documentation takes priority over conventions in other SDKs. OpenAPI can help inventory REST operations and detect drift, but does not replace the documented Gateway, rate-limit, interaction, component or voice contracts.
+
+## Reference licensing
+
+The pinned repository's [README](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/README.md) identifies its documentation as [CC BY-SA 4.0](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE) and code samples as [MIT](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE-CODE), except where otherwise noted. These are upstream licences, separate from Diszig's Apache-2.0 licence. This page records source metadata and links; no upstream documentation or implementation is bundled with Diszig.

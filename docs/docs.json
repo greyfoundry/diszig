@@ -1,0 +1,10 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Diszig",
+  "colors": {"primary": "#C87817", "light": "#F7A41D", "dark": "#A75812"},
+  "navigation": {"groups": [
+    {"group": "Diszig", "pages": ["index", "status", "architecture"]},
+    {"group": "Engineering", "pages": ["sharding", "compatibility", "references", "contributing"]}
+  ]}
+}

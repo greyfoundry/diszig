@@ -1,0 +1,1 @@
+Read the root [AGENTS.md](../AGENTS.md) before coding; its golden rules apply to Copilot/VS Code. Follow AI_POLICY.md, use `.agents/skills/` for relevant workflows, and verify actual compiler and protocol APIs. If the linked file is not automatically loaded, open it explicitly. Do not check human approval boxes on behalf of contributors.

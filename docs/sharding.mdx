@@ -1,0 +1,9 @@
+---
+title: 'Sharding'
+---
+
+Two modes are planned for the first functional client release. Native sharding runs several Gateway sessions in one process and is the default. Hybrid sharding groups shards into supervised worker processes on one host.
+
+Both modes use the same Gateway implementation. The supervisor coordinates startup budgets, shard ownership and shared REST limits across workers. Failed workers must not start competing sessions, and unknown ownership or coordinator loss must be handled conservatively. Local hybrid mode is intended to require no Redis or external coordinator.
+
+Multi-host coordination is a separate future integration. No exactly-once event delivery or distributed failover guarantee is made. Configuration and working examples will be documented after implementation and verification.

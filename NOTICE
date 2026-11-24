@@ -1,0 +1,5 @@
+Diszig
+A Greyfoundry project.
+Licensed under the Apache License, Version 2.0.
+
+No third-party implementation code is included in this repository seed. Add required third-party notices and attribution when code or dependencies requiring them are introduced. Discord is a third-party service; Diszig is independent.
