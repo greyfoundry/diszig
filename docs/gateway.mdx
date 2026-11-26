@@ -165,9 +165,10 @@ the event is returned; they never wait for application callbacks.
 
 `diszig.gateway.events.decode` types READY, RESUMED, the first channel batch
 (CHANNEL_CREATE, CHANNEL_UPDATE, CHANNEL_DELETE, CHANNEL_INFO and
-CHANNEL_PINS_UPDATE) and APPLICATION_COMMAND_PERMISSIONS_UPDATE. Every other
-event is `.raw` with the original gateway envelope; EVENT-* packages add typed
-payloads.
+CHANNEL_PINS_UPDATE), APPLICATION_COMMAND_PERMISSIONS_UPDATE and the first guild
+batch (GUILD_CREATE, GUILD_UPDATE, GUILD_DELETE, GUILD_AUDIT_LOG_ENTRY_CREATE,
+GUILD_BAN_ADD, GUILD_BAN_REMOVE). Every other event is `.raw` with the original
+gateway envelope; EVENT-* packages add typed payloads.
 
 Typed channel payloads use `Presence` for nullable fields: an omitted update
 field is absent and does not clear it, while an explicit null is a clear.

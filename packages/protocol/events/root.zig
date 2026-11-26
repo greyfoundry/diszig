@@ -2,3 +2,4 @@
 
 pub const channels = @import("channels.zig");
 pub const commands = @import("commands.zig");
+pub const guilds = @import("guilds.zig");

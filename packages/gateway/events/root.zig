@@ -13,6 +13,7 @@ const protocol = @import("protocol");
 
 pub const channels = @import("channels.zig");
 pub const commands = @import("commands.zig");
+pub const guilds = @import("guilds.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -36,6 +37,12 @@ pub const Event = union(enum) {
     channel_info: channels.ChannelInfo,
     channel_pins_update: channels.ChannelPinsUpdate,
     application_command_permissions_update: commands.GuildApplicationCommandPermissions,
+    guild_create: guilds.Guild,
+    guild_update: guilds.Guild,
+    guild_delete: guilds.Guild,
+    guild_audit_log_entry_create: guilds.AuditLogEntry,
+    guild_ban_add: guilds.GuildBan,
+    guild_ban_remove: guilds.GuildBan,
     raw: Raw,
 };
 
@@ -65,6 +72,16 @@ pub fn decode(
                 .permissions_update => |permissions| .{
                     .application_command_permissions_update = permissions,
                 },
+            };
+        }
+        if (try guilds.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |guild| .{ .guild_create = guild },
+                .update => |guild| .{ .guild_update = guild },
+                .delete => |guild| .{ .guild_delete = guild },
+                .audit_log_entry_create => |entry| .{ .guild_audit_log_entry_create = entry },
+                .ban_add => |ban| .{ .guild_ban_add = ban },
+                .ban_remove => |ban| .{ .guild_ban_remove = ban },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };
