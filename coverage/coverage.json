@@ -75,6 +75,30 @@
       "live_verified": false
     },
     {
+      "id": "rest.pagination",
+      "kind": "rest-pagination",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/pagination.zig", "src/root.zig"],
+      "tests": ["packages/rest/pagination.zig", "tests/rest/pagination.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L167",
+      "live_verified": false
+    },
+    {
+      "id": "rest.audit-reason",
+      "kind": "rest-audit",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/audit.zig", "src/root.zig"],
+      "tests": ["packages/rest/audit.zig", "tests/rest/pagination.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/resources/audit-log.mdx",
+      "live_verified": false
+    },
+    {
       "id": "rest.uploads",
       "kind": "rest-upload",
       "status": "implemented",
