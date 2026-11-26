@@ -1,6 +1,12 @@
 # Compatibility policy
 
-The research baseline is Zig 0.17.1, listed as stable on the [official download page](https://ziglang.org/download/) when checked on 2026-11-24. The initial supported compiler and range will be set after compiler-tested feasibility. No verified SDK platform support is claimed yet.
+The research baseline is Zig 0.17.1, listed as stable on the [official download page](https://ziglang.org/download/) when checked on 2026-11-26. The initial supported compiler and range will be set after compiler-tested feasibility. No verified SDK platform support is claimed yet.
+
+## Verified compiler facts
+
+The official x86-64 Windows archive for 0.17.1 was checked against the SHA-256 in the download index and its minisign signature was verified. A focused probe using the installed standard library passes in Debug and ReleaseSafe on Windows 11 x86-64. It covers module imports, JSON decoding, explicit null versus absent fields, defaulted fields and every allocation point failing with clean unwinding.
+
+This establishes compiler usability for the first implementation slice. It does not establish a supported compiler range, Linux or macOS runtime support, ARM64 support, CI coverage or live Discord behaviour.
 
 Target operating systems are Linux, Windows and macOS; target architectures x86-64 and ARM64 where available. Distinguish compilation from native runtime tests. Required CI covers the declared current stable compiler; previous stable support is added only when tested and maintainable. Development compiler checks are advisory until explicitly supported. Zig's API is evolving; isolate actual version-sensitive boundaries and migrate deliberately towards Zig 1.0. No promise about unreleased compiler versions.
 
