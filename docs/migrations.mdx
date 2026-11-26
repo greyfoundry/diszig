@@ -1,0 +1,54 @@
+---
+title: 'Migrations'
+---
+
+Diszig tracks a specific tested Zig compiler. A newer compiler release is a
+migration candidate, not an automatic support expansion.
+
+## Current baseline
+
+- Compiler: Zig 0.17.1.
+- Native tests: Windows 11 x86-64, Debug and ReleaseSafe.
+- Hosted CI: Ubuntu x86-64 and Windows x86-64.
+- Compile-only checks: Linux x86-64/aarch64, macOS x86-64/aarch64, Windows
+  aarch64.
+
+There is no promised minimum/maximum compiler range beyond these tested facts.
+A previous stable compiler is not supported until it is tested. A development
+compiler is advisory only.
+
+## Migrating the compiler
+
+1. Recheck the official stable release and the installed standard library.
+2. Acquire the candidate compiler separately. Do not overwrite the reviewed
+   baseline.
+3. Compile focused probes for changed I/O, allocator, TLS, networking, process
+   and build APIs before editing production code.
+4. Update the code and tests; run native tests, cross-checks, package checks,
+   docs and the external consumer.
+5. Record exact compiler source, hashes, commands, results and known gaps.
+6. Keep the old pin until the new compiler and artifact pass the gates.
+
+A failed migration leaves the reviewed baseline active. Do not widen a support
+claim because a cross-compile succeeded or because a release note says a change
+is minor.
+
+## Zig 1.0
+
+Zig 1.0 is a design target, not a promise that current code works on an
+unreleased compiler. Review compatibility boundaries only when the actual
+compiler proves them obsolete. Do not add an imagined future-Zig shim, and do
+not hide version-sensitive code behind a compatibility layer without tests.
+
+## Diszig versioning
+
+Diszig has its own semantic version. Pre-1.0 public APIs may change. A breaking
+change records:
+
+- the affected public symbol and migration path;
+- the exact compiler/artifact tested;
+- whether raw access remains;
+- rollback and deprecation timing.
+
+The command `python tools/check_compiler.py` fails when the active compiler is
+not 0.17.1. `--advisory` reports a candidate without claiming support.

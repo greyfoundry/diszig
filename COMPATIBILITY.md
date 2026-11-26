@@ -1,6 +1,8 @@
 # Compatibility policy
 
-The research baseline is Zig 0.17.1, listed as stable on the [official download page](https://ziglang.org/download/) when checked on 2026-11-26. The initial supported compiler and range will be set after compiler-tested feasibility. No verified SDK platform support is claimed yet.
+The research baseline and currently tested compiler is Zig 0.17.1, listed as stable on the [official download page](https://ziglang.org/download/) when checked on 2026-11-26. There is no promised minimum/maximum compiler range beyond the tested baseline; a previous stable or newer release is unsupported until tested and recorded. No verified SDK platform support is claimed yet.
+
+Compiler checks are enforced by `python tools/check_compiler.py`; `--advisory` reports a candidate without expanding support. The migration process is documented in `docs/migrations.mdx`.
 
 ## Verified compiler facts
 

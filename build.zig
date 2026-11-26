@@ -161,6 +161,7 @@ pub fn build(b: *std.Build) void {
     const coverage_check = b.addSystemCommand(&.{ "python", "tools/check_coverage.py" });
     const coverage_self_test = b.addSystemCommand(&.{ "python", "tools/check_coverage.py", "--self-test" });
     const drift_self_test = b.addSystemCommand(&.{ "python", "tools/check_api_drift.py", "--self-test" });
+    const compiler_check = b.addSystemCommand(&.{ "python", "tools/check_compiler.py" });
 
     const consumer_step = b.step("consumer", "Build and run the external archive consumer");
     const consumer = b.addSystemCommand(&.{ "python", "tests/consumer/fetch_test.py" });
@@ -178,6 +179,7 @@ pub fn build(b: *std.Build) void {
     check_step.dependOn(&coverage_check.step);
     check_step.dependOn(&coverage_self_test.step);
     check_step.dependOn(&drift_self_test.step);
+    check_step.dependOn(&compiler_check.step);
     check_step.dependOn(&consumer.step);
     check_step.dependOn(&transport_check.step);
 
