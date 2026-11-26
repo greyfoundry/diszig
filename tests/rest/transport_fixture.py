@@ -8,7 +8,7 @@ import sys
 import threading
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-EXE = ROOT / "zig-out" / "bin" / "transport_probe.exe"
+EXE = ROOT / "zig-out" / "bin" / ("transport_probe.exe" if sys.platform == "win32" else "transport_probe")
 ZIG = "zig"
 
 records = {}

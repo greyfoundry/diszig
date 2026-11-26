@@ -22,6 +22,21 @@ test "route paths cannot escape the configured origin" {
     );
 }
 
+test "REST version is explicit and defaults to v10" {
+    var default_client = try diszig.rest.Client.init(std.testing.allocator, std.testing.io, .{});
+    defer default_client.deinit();
+    try std.testing.expectEqual(diszig.ApiVersion.v10, default_client.apiVersion());
+    try std.testing.expectEqualStrings("https://discord.com/api/v10", default_client.baseUrl());
+
+    var v9_client = try diszig.rest.Client.init(std.testing.allocator, std.testing.io, .{
+        .api_version = .v9,
+    });
+    defer v9_client.deinit();
+    try std.testing.expectEqual(diszig.ApiVersion.v9, v9_client.apiVersion());
+    try std.testing.expectEqualStrings("https://discord.com/api/v9", v9_client.baseUrl());
+    try std.testing.expectEqual(@as(?diszig.ApiVersion, null), diszig.ApiVersion.parse("v8"));
+}
+
 test "different hosts are not same-origin" {
     const a = try std.Uri.parse("https://discord.com/api");
     const b = try std.Uri.parse("https://cdn.discordapp.com/x");

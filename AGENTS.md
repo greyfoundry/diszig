@@ -34,6 +34,18 @@ These apply to implementation, review, generated code, tooling and documentation
 26. **Make small reversible changes.** Each milestone must work in isolation; separate behaviour changes from unrelated churn. Document migration and rollback for material changes. If a test or prerequisite is blocked, report it and continue independent safe work.
 27. **Release gates apply to the exact artifact.** Test an external package consumer, inspect the source allowlist, verify published docs links and dependency hashes, and confirm `.private` and secrets cannot ship. Release and compiler versions are independent.
 
+## API and protocol versions
+
+- Protocol evolution is expected. Isolate genuine version-specific differences and share compatible implementations; never duplicate the SDK for another API version.
+- REST, Gateway, Voice Gateway, voice encryption/DAVE, OpenAPI, IPC and Diszig SDK versions are independent. Selecting one does not select another.
+- Compatibility requires evidence. A configurable version number is not proof of support; every claim needs version-specific tests and documentation.
+- Never silently downgrade, upgrade or retry against another protocol version, and never change operation semantics through an implicit fallback.
+- Official Discord documentation takes precedence over reference SDKs and generated schemas.
+- Unknown additive data may be retained where safe, but malformed input and unknown security-sensitive behavior must fail safely. Do not send unknown outbound values blindly.
+- Unsupported functionality returns an explicit error. Do not fabricate success or maintain discontinued protocols without a concrete reason.
+- Defaults target a verified stable version. A new default requires a reviewed baseline, drift review, conformance tests and release evidence.
+- Upstream changes never authorize automatic publication, release or support expansion.
+
 ## Working procedure
 
 - Identify the affected protocol/package and select a relevant skill from `.agents/skills/`. Tool-specific mirrors link to that source of truth.

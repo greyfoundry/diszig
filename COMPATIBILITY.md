@@ -24,6 +24,8 @@ Compile-only targets are not runtime support claims. No macOS or ARM64 native ru
 
 Target operating systems are Linux, Windows and macOS; target architectures x86-64 and ARM64 where available. Distinguish compilation from native runtime tests. Required CI covers the declared current stable compiler; previous stable support is added only when tested and maintainable. Development compiler checks are advisory until explicitly supported. Zig's API is evolving; isolate actual version-sensitive boundaries and migrate deliberately towards Zig 1.0. No promise about unreleased compiler versions.
 
+Discord REST v10 is the default and full implementation target. REST v9 is an explicit transport option while Discord lists it as available, but endpoint-level v9 coverage is not claimed until tested. v8 and older are unsupported, and v11+ is a future target only after a reviewed baseline and deliberate migration. Selecting a REST version does not select Gateway, Voice, DAVE, OpenAPI or Diszig versions, and there is no silent downgrade or fallback.
+
 Initial Discord target: documented v10 REST and Gateway; additional versions only when explicitly supported. Track operation/event coverage, raw vs typed functionality, gated/experimental features, deprecations and optional voice separately. Discord OpenAPI preview is an inventory aid, not a production contract. Official docs and verified protocol behaviour govern.
 
 Diszig uses independent semantic versioning. Pre-1.0 APIs may change; record breaking changes and migration instructions. A stable Diszig API is declared only after its own release gates are met. Dependencies, optional features and platform limits must be published by release.

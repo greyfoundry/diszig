@@ -171,6 +171,18 @@
       "live_verified": false
     },
     {
+      "id": "protocol.api-version",
+      "kind": "version-policy",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/version.zig", "src/root.zig"],
+      "tests": ["packages/protocol/version.zig", "tests/rest/transport.zig"],
+      "docs": ["docs/compatibility.mdx", "docs/migrations.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L16",
+      "live_verified": false
+    },
+    {
       "id": "protocol.models-shared-02",
       "kind": "model-batch",
       "status": "implemented",

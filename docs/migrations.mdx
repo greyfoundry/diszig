@@ -40,6 +40,14 @@ unreleased compiler. Review compatibility boundaries only when the actual
 compiler proves them obsolete. Do not add an imagined future-Zig shim, and do
 not hide version-sensitive code behind a compatibility layer without tests.
 
+## Discord REST versions
+
+REST v10 is the default. REST v9 is an explicit transport option while Discord
+still lists it as available; it is not a full coverage claim. Selecting v9 must
+not change the Gateway, Voice, DAVE, OpenAPI or Diszig versions. v8 and older
+are unsupported. A future v11 requires a new pinned baseline, drift review,
+version-specific tests and a deliberate default change.
+
 ## Diszig versioning
 
 Diszig has its own semantic version. Pre-1.0 public APIs may change. A breaking

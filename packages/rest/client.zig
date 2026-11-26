@@ -8,11 +8,15 @@ const std = @import("std");
 const transport = @import("transport.zig");
 const rest_errors = @import("errors.zig");
 const retry = @import("retry.zig");
+const protocol = @import("protocol");
 
 pub const Auth = transport.Auth;
 
 pub const Options = struct {
-    base_url: []const u8 = "https://discord.com/api/v10",
+    /// Explicit REST version. Defaults to v10; no downgrade or fallback occurs.
+    api_version: protocol.ApiVersion = .default,
+    /// Testing/embedding override. When null, the version base URL is used.
+    base_url: ?[]const u8 = null,
     auth: Auth = .none,
     /// Takes ownership when supplied; the client frees the bundle in deinit.
     ca_bundle: ?std.crypto.Certificate.Bundle = null,
@@ -51,6 +55,7 @@ pub const Client = struct {
     allocator: std.mem.Allocator,
     io: std.Io,
     http: std.http.Client,
+    api_version: protocol.ApiVersion,
     base_url: [256]u8 = undefined,
     base_url_len: usize = 0,
     auth_buffer: [256]u8 = undefined,
@@ -67,13 +72,15 @@ pub const Client = struct {
                 .io = io,
                 .read_buffer_size = 16 * 1024,
             },
+            .api_version = options.api_version,
             .max_response_bytes = options.max_response_bytes,
             .max_redirects = options.max_redirects,
         };
 
-        if (options.base_url.len > self.base_url.len) return error.BaseUrlTooLong;
-        @memcpy(self.base_url[0..options.base_url.len], options.base_url);
-        self.base_url_len = options.base_url.len;
+        const base_url = options.base_url orelse options.api_version.baseUrl();
+        if (base_url.len > self.base_url.len) return error.BaseUrlTooLong;
+        @memcpy(self.base_url[0..base_url.len], base_url);
+        self.base_url_len = base_url.len;
 
         const auth_value = transport.writeAuthHeader(options.auth, &self.auth_buffer) catch |err| switch (err) {
             error.TokenTooLong => return error.AuthTooLong,
@@ -96,6 +103,14 @@ pub const Client = struct {
 
     pub fn authHeader(self: *const Client) []const u8 {
         return self.auth_buffer[0..self.auth_len];
+    }
+
+    pub fn apiVersion(self: *const Client) protocol.ApiVersion {
+        return self.api_version;
+    }
+
+    pub fn baseUrl(self: *const Client) []const u8 {
+        return self.base_url[0..self.base_url_len];
     }
 
     fn maxBody(self: *const Client, options: RequestOptions) usize {

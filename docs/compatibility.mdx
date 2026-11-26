@@ -4,6 +4,15 @@ title: 'Compatibility'
 
 Zig 0.17.1 is the initial research baseline. The actual compiler support range will be established by tested builds and examples. Linux, Windows and macOS on x86-64 and ARM64 are targets, not verified support claims. A focused standard-library probe and the root package's unit tests currently pass in Debug and ReleaseSafe on Windows 11 x86-64; that is build evidence for one host, not SDK platform support.
 
+## Discord REST versions
+
+- **v10 is the default and full implementation target.**
+- **v9 is explicit opt-in.** The transport can target v9, but endpoint-by-endpoint v9 compatibility is not claimed until tested. Shared behavior is reused; genuine v9 differences must be recorded before support is announced.
+- **v8 and older are unsupported.** Discontinued versions are not sent requests.
+- **v11+ is a future target.** No fictional endpoints, types or fallbacks are added before Discord publishes a stable version and a reviewed source baseline.
+
+Selecting a version never changes Gateway, Voice, DAVE, OpenAPI or Diszig SDK versions. There is no silent downgrade, implicit fallback or retry against another API version.
+
 ## Evidence matrix
 
 | Target | Evidence |

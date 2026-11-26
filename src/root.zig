@@ -11,6 +11,7 @@ pub const protocol = protocol_mod;
 pub const rest = rest_mod;
 pub const Snowflake = protocol.Snowflake;
 pub const Timestamp = protocol.Timestamp;
+pub const ApiVersion = protocol.ApiVersion;
 pub const cdn = protocol.cdn;
 pub const errors = protocol.errors;
 pub const flags = protocol.flags;
