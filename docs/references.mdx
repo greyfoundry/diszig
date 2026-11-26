@@ -10,6 +10,17 @@ The initial research baseline is pinned to commit [`5a61ef8ebaf5e5702d3dc80e052d
 
 Official protocol documentation takes priority over conventions in other SDKs. OpenAPI can help inventory REST operations and detect drift, but does not replace the documented Gateway, rate-limit, interaction, component or voice contracts.
 
+## OpenAPI inventory baseline
+
+The REST inventory uses [discord/discord-api-spec](https://github.com/discord/discord-api-spec) at commit [`654230017d4f5ee3e6a59a769ffc40cf61001e3f`](https://github.com/discord/discord-api-spec/tree/654230017d4f5ee3e6a59a769ffc40cf61001e3f). Two inputs are kept separate:
+
+- Standard [`specs/openapi.json`](https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json), SHA-256 `33be28e715283003426be4666c0b558a53ce2e9a54f13217666304a2865048ba`
+- Preview [`specs/openapi_preview.json`](https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi_preview.json), SHA-256 `ef1e865cacb7d0e5690bde8a7ac101e57396acd12942e8be503c44488e138495`
+
+At this pin both inputs define 250 operations and 542 model names, but five models differ. Equal counts do not imply identical semantics. The schema repository describes its input as preview-quality; presence in the schema is an inventory fact, not proof of a permitted, stable or implemented API. The docs pin and schema pin are independent baselines and must not be treated as one synchronized snapshot.
+
 ## Reference licensing
 
-The pinned repository's [README](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/README.md) identifies its documentation as [CC BY-SA 4.0](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE) and code samples as [MIT](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE-CODE), except where otherwise noted. These are upstream licences, separate from Diszig's Apache-2.0 licence. This page records source metadata and links; no upstream documentation or implementation is bundled with Diszig.
+The pinned repository's [README](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/README.md) identifies its documentation as [CC BY-SA 4.0](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE) and code samples as [MIT](https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/LICENSE-CODE), except where otherwise noted. The spec repository is [MIT licensed](https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/LICENSE). These are upstream licences, separate from Diszig's Apache-2.0 licence. This page records source metadata and links; no upstream documentation or implementation is bundled with Diszig.
+
+Only MIT-licensed or independently written material may inform implementation. Upstream documentation prose is not copied into public source or documentation without a rights review.
