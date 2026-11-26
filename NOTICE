@@ -2,4 +2,4 @@ Diszig
 A Greyfoundry project.
 Licensed under the Apache License, Version 2.0.
 
-No third-party implementation code is included in this repository seed. Add required third-party notices and attribution when code or dependencies requiring them are introduced. Discord is a third-party service; Diszig is independent.
+No third-party implementation code is included in this repository seed. The initial core selects only the Zig standard library and has no third-party runtime dependency. Optional voice support is not part of the basic package; if it is added, libdave, Opus and any other native component will be documented with their exact revisions, licences and notices. Add required third-party notices and attribution when code or dependencies requiring them are introduced. Discord is a third-party service; Diszig is independent.
