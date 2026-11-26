@@ -67,9 +67,21 @@ separate and require explicit authorization.
 ```bash
 python tools/check_coverage.py
 python tools/check_coverage.py --self-test
+python tools/check_api_drift.py --self-test
 zig build check
 ```
 
 The checker rejects an implemented surface with no symbol, test or documentation
 evidence, a live-verified surface with no dated evidence, and fixture files that
 look like credentials.
+
+## Source drift
+
+`python tools/check_api_drift.py --baseline OLD.json --current NEW.json` compares
+operation and model hashes without fetching or rewriting a pin. Removed, added
+or changed operations/models are printed for manual review. Drift is a review
+trigger, not an automatic upgrade, issue or release.
+
+The reviewed standard and preview schemas are separate inputs. Comparing them
+must report the known model differences rather than pretending the files are
+interchangeable.
