@@ -6,6 +6,7 @@ pub const cdn = @import("cdn.zig");
 pub const errors = @import("errors.zig");
 pub const flags = @import("flags.zig");
 pub const json = @import("json.zig");
+pub const models = @import("models/root.zig");
 pub const permissions = @import("permissions.zig");
 pub const presence = @import("presence.zig");
 pub const snowflake = @import("snowflake.zig");
@@ -20,6 +21,7 @@ test {
     _ = errors;
     _ = flags;
     _ = json;
+    _ = models;
     _ = permissions;
     _ = presence;
     _ = snowflake;
