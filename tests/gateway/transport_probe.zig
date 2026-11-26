@@ -25,7 +25,6 @@ pub fn main(init: std.process.Init) !void {
         .read_buffer_bytes = @min(bound, 8 * 1024),
         .compression = if (compressed) .zlib_stream else .none,
         .handshake_timeout_ms = 3000,
-        .read_timeout_ms = 2000,
     });
     defer connection.deinit();
 
@@ -35,12 +34,8 @@ pub fn main(init: std.process.Init) !void {
 
     if (std.mem.eql(u8, mode, "partial") or std.mem.eql(u8, mode, "bomb")) {
         const result = connection.next();
-        if (result) |maybe_message| {
-            if (maybe_message) |message| {
-                try out.print("unexpected:{s}\n", .{message.data});
-            } else {
-                try out.print("timeout\n", .{});
-            }
+        if (result) |message| {
+            try out.print("unexpected:{s}\n", .{message.data});
         } else |err| {
             try out.print("error:{s}\n", .{@errorName(err)});
         }
@@ -51,11 +46,7 @@ pub fn main(init: std.process.Init) !void {
     var seen: usize = 0;
     while (seen < 4) : (seen += 1) {
         const result = connection.next();
-        if (result) |maybe_message| {
-            const message = maybe_message orelse {
-                try out.print("timeout\n", .{});
-                break;
-            };
+        if (result) |message| {
             switch (message.kind) {
                 .text => try out.print("msg:{s}\n", .{message.data}),
                 .binary => try out.print("binary:{d}\n", .{message.data.len}),

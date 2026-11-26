@@ -47,10 +47,12 @@ modifications. Diszig does not implement a second frame parser.
 - A socket that closes mid-frame surfaces an error; `next` never returns a
   partial payload.
 
-`next` returns `null` when the socket read timeout expires. That means "no
-payload yet", not "connection closed"; the session layer decides whether to
-keep polling or recover. `setReadTimeout` changes the timeout for the
-cancellation loop.
+`next` blocks until a complete payload or a close/error. Cancel a blocked read by
+closing the connection from another owner; the shutdown unblocks the reader.
+`Session.connect` bounds the initial Hello wait with a watchdog that closes the
+socket at the handshake deadline. A positive `SO_RCVTIMEO` is deliberately not
+used: Zig 0.17's Linux `Io` treats `EAGAIN` from a timed-out socket as a
+programmer bug before the WebSocket client can map it to a timeout.
 
 ## Transport compression
 
@@ -88,8 +90,38 @@ connection.
   outbound payloads in place. The copy is wiped after the write. Gateway send
   payloads can contain the Identify token.
 
+## Session control
+
+`diszig.gateway.Session.connect` wraps the transport and requires Hello as the
+first payload:
+
+- `parseHello` reads `heartbeat_interval` and rejects a non-positive value.
+- The first heartbeat is delayed by `heartbeat_interval * jitter`, where the
+  caller may supply a deterministic jitter in [0, 1) or let the session draw a
+  random value.
+- `parseEnvelope` reads only the top-level `op` and `s`; a large `d` is skipped
+  without building a value tree.
+
+Heartbeats follow Discord's documented contract:
+
+- `tick` sends `{"op":1,"d":<last sequence or null>}` when a deadline is due.
+- An ACK (op `11`) clears the outstanding heartbeat. A server heartbeat request
+  (op `1`) asks the next `tick` to send immediately.
+- If the next deadline arrives with no ACK, `tick` returns `.zombie`, the session
+  closes with code `4000`, and the caller must reconnect and resume (GW-03).
+- A delayed loop sends one heartbeat and reschedules a full interval later; it
+  does not emit a burst of missed beats.
+
+`startHeartbeat` runs the scheduler on a separate thread that only writes
+heartbeats. The caller's I/O owner keeps calling `next`, which consumes ACKs and
+server requests. User handlers must run on worker capacity (GW-04), never on
+either path. `stopHeartbeat` joins the thread; `deinit` calls it.
+
+This phase does not Identify. Discord will close the connection after Hello, so
+the session is only usable against the local fixture until GW-03 adds Identify
+and Resume.
+
 ## Not implemented yet
 
-Hello parsing, heartbeat scheduling and ACK liveness, Identify, Resume, close
-code classification, typed dispatch, backpressure, sharding and the client
-facade. None of those are claimed by this page.
+Identify, Resume, close code classification, typed dispatch, backpressure,
+sharding and the client facade. None of those are claimed by this page.

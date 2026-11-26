@@ -203,6 +203,18 @@ pub fn build(b: *std.Build) void {
     });
     test_step.dependOn(&b.addRunArtifact(public_framing_tests).step);
 
+    const public_heartbeat_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/gateway/heartbeat.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_heartbeat_tests).step);
+
     const package_check = b.addSystemCommand(&.{ "python", "tools/check_package.py" });
     const package_self_test = b.addSystemCommand(&.{ "python", "tools/check_package.py", "--self-test" });
     const repository_check = b.addSystemCommand(&.{ "python", "tools/check_repository.py" });
@@ -237,6 +249,24 @@ pub fn build(b: *std.Build) void {
     const gateway_fixture = b.addSystemCommand(&.{ "python", "tests/gateway/transport_fixture.py" });
     gateway_fixture_step.dependOn(&gateway_fixture.step);
 
+    const session_probe_step = b.step("session-probe", "Build the local Gateway session probe");
+    const session_probe = b.addExecutable(.{
+        .name = "session_probe",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/gateway/session_probe.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    session_probe_step.dependOn(&b.addInstallArtifact(session_probe, .{}).step);
+
+    const heartbeat_fixture_step = b.step("heartbeat-fixture", "Run the local Gateway heartbeat fixture");
+    const heartbeat_fixture = b.addSystemCommand(&.{ "python", "tests/gateway/heartbeat_fixture.py" });
+    heartbeat_fixture_step.dependOn(&heartbeat_fixture.step);
+
     const check_step = b.step("check", "Run tests and repository/package gates");
     check_step.dependOn(test_step);
     check_step.dependOn(&package_check.step);
@@ -249,6 +279,7 @@ pub fn build(b: *std.Build) void {
     check_step.dependOn(&consumer.step);
     check_step.dependOn(&transport_check.step);
     check_step.dependOn(&gateway_fixture.step);
+    check_step.dependOn(&heartbeat_fixture.step);
 
     const probe_step = b.step("transport-probe", "Build the local REST transport probe");
     const probe = b.addExecutable(.{

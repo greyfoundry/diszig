@@ -88,8 +88,6 @@ pub const Options = struct {
     read_buffer_bytes: usize = 16 * 1024,
     compression: Compression = .none,
     handshake_timeout_ms: u32 = 10_000,
-    /// Default socket read timeout. `next` returns null when it expires.
-    read_timeout_ms: u32 = 30_000,
     ca_bundle: ?std.crypto.Certificate.Bundle = null,
     /// Extra handshake headers ("Name: value" pairs joined by CRLF), no
     /// trailing CRLF required.
@@ -154,7 +152,6 @@ pub const Connection = struct {
             .timeout_ms = options.handshake_timeout_ms,
             .headers = options.extra_handshake_headers,
         });
-        try client.readTimeout(options.read_timeout_ms);
 
         return .{
             .allocator = allocator,
@@ -181,19 +178,17 @@ pub const Connection = struct {
         return self.closed or self.client.isClosed();
     }
 
-    /// Changes the socket read timeout. Used by the session's cancellation
-    /// loop; a shorter timeout simply makes `next` return null more often.
-    pub fn setReadTimeout(self: *Connection, ms: u32) !void {
-        try self.client.readTimeout(ms);
-    }
-
-    /// Returns the next gateway payload, or null if the read timeout expired
-    /// before a complete message arrived. Pings are answered and pongs are
-    /// ignored internally.
-    pub fn next(self: *Connection) !?Message {
+    /// Returns the next gateway payload. Reads are blocking; cancel by closing
+    /// the connection (from another owner) so the blocked read returns.
+    ///
+    /// A positive socket read timeout is deliberately not exposed. On Linux,
+    /// Zig 0.17's `Io` treats `EAGAIN` from a timed-out socket as a programmer
+    /// bug before the WebSocket client can map it to a timeout. Blocking reads
+    /// plus explicit close are correct on every platform.
+    pub fn next(self: *Connection) !Message {
         if (self.closed) return error.Closed;
         while (true) {
-            const raw = try self.client.read() orelse return null;
+            const raw = try self.client.read() orelse return error.UnexpectedTimeout;
             defer self.client.done(raw);
 
             switch (raw.type) {
