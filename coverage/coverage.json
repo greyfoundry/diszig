@@ -51,6 +51,18 @@
       "live_verified": false
     },
     {
+      "id": "rest.transport",
+      "kind": "rest-transport",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/client.zig", "packages/rest/transport.zig", "src/root.zig"],
+      "tests": ["packages/rest/transport.zig", "tests/rest/transport.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L236",
+      "live_verified": false
+    },
+    {
       "id": "rest.structured-errors",
       "kind": "rest-error",
       "status": "implemented",
