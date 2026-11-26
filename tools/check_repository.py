@@ -21,6 +21,20 @@ def errors():
                 problems.append(f'Potential secret tracked: {path}')
     else:
         print('No Git metadata; tracked-path check skipped.')
+    workflow = ROOT / '.github/workflows/ci.yml'
+    if workflow.is_file():
+        text = workflow.read_text(encoding='utf-8')
+        if 'pull_request_target' in text:
+            problems.append('CI must not use pull_request_target')
+        if re.search(r'\bsecrets\.', text):
+            problems.append('CI must not reference repository secrets')
+        for line in text.splitlines():
+            match = re.match(r'\s*uses:\s*([^\s#]+)', line)
+            if match and not match.group(1).startswith('./'):
+                if not re.search(r'@[0-9a-f]{40}$', match.group(1)):
+                    problems.append(f'Unpinned GitHub Action: {match.group(1)}')
+        if not re.search(r'^permissions:\s*\n\s+contents:\s*read\s*$', text, re.MULTILINE):
+            problems.append('CI must grant only contents: read')
     config = json.loads((ROOT / 'docs/docs.json').read_text(encoding='utf-8'))
     for group in config['navigation']['groups']:
         for page in group['pages']:

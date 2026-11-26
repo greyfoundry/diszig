@@ -34,7 +34,7 @@ The SDK uses Zig's native build and package system. The current package targets 
 zig build test
 ```
 
-Tests pass in Debug and ReleaseSafe on Windows x86-64. Linux, macOS and ARM64 remain unverified targets. The package allowlist is checked with `python tools/check_package.py`, and `python tests/consumer/fetch_test.py` builds a fresh consumer from a hashed source archive. Examples and CI will be compiled rather than maintained as disconnected snippets.
+Tests pass in Debug and ReleaseSafe on Windows x86-64. Linux, macOS and ARM64 remain unverified targets. `zig build check` runs the unit tests, package allowlist gate and archive consumer. `zig build docs` validates the handbook when Mintlify is installed. The CI workflow adds a format check and a ReleaseSafe run on Linux and Windows; it has not yet run on hosted runners. Examples will be compiled rather than maintained as disconnected snippets.
 
 The current repository contains:
 
