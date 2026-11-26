@@ -2,6 +2,8 @@
 
 pub const client = @import("client.zig");
 pub const errors = @import("errors.zig");
+pub const request = @import("request.zig");
+pub const routes = @import("routes.zig");
 pub const transport = @import("transport.zig");
 
 pub const Client = client.Client;
