@@ -8,6 +8,8 @@ const protocol_mod = @import("protocol");
 
 pub const protocol = protocol_mod;
 pub const Snowflake = protocol.Snowflake;
+pub const Timestamp = protocol.Timestamp;
+pub const cdn = protocol.cdn;
 pub const errors = protocol.errors;
 pub const json = protocol.json;
 

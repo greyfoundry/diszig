@@ -15,6 +15,30 @@
       "live_verified": false
     },
     {
+      "id": "protocol.timestamp",
+      "kind": "primitive",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/timestamp.zig", "src/root.zig"],
+      "tests": ["packages/protocol/timestamp.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L210",
+      "live_verified": false
+    },
+    {
+      "id": "protocol.cdn-identity",
+      "kind": "primitive",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/cdn.zig", "src/root.zig"],
+      "tests": ["packages/protocol/cdn.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L336",
+      "live_verified": false
+    },
+    {
       "id": "protocol.error-context",
       "kind": "primitive",
       "status": "implemented",

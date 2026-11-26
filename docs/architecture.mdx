@@ -24,7 +24,7 @@ tests/                    Cross-package fixtures and failure tests
 benchmarks/               Reproducible measurements
 ```
 
-These paths describe responsibilities, not existing packages. The protocol skeleton exists: `packages/protocol/errors.zig` provides bounded, redacted error context and `packages/protocol/json.zig` provides presence, tolerant-enum and one-of helpers. REST, Gateway, builders, interactions, client and sharding are not implemented yet. The first build should prove a protocol module and an external consumer before expanding the package tree.
+These paths describe responsibilities, not existing packages. The protocol skeleton exists: `snowflake.zig` provides strict decimal IDs and timestamps, `timestamp.zig` parses and formats ISO8601, `cdn.zig` validates CDN image identity, `errors.zig` provides bounded redacted context and `json.zig` provides presence, tolerant-enum and one-of helpers. REST, Gateway, builders, interactions, client and sharding are not implemented yet. The root package and an external consumer are proven before expanding the tree.
 
 ## Serialization policy
 

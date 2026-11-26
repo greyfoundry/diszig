@@ -7,7 +7,7 @@
 
 Diszig is a native Discord SDK for Zig. We're building the kind of library Zig developers should be able to reach for when they want to write a Discord bot: a client that handles the connection, typed events, builders for the things you send to Discord, and direct access to the API when you need it.
 
-> Early implementation. A Zig build and protocol module exist (Snowflake, error context, tolerant JSON helpers). REST, Gateway, client, builders, sharding and voice are not implemented. There is no installable release or supported public client API yet. The features below describe the direction of the project.
+> Early implementation. A Zig build and protocol module exist (Snowflake, ISO8601 timestamps, CDN identity, error context, tolerant JSON helpers). REST, Gateway, client, builders, sharding and voice are not implemented. There is no installable release or supported public client API yet. The features below describe the direction of the project.
 
 ## Why Diszig?
 

@@ -46,6 +46,25 @@ pub const Snowflake = struct {
         try writer.print("{d}", .{self.value});
     }
 
+    /// Discord serializes Snowflakes as decimal JSON strings. Parsing numbers
+    /// is rejected so JavaScript-generated precision loss cannot enter the SDK.
+    pub fn jsonParse(
+        allocator: std.mem.Allocator,
+        source: anytype,
+        options: std.json.ParseOptions,
+    ) !Snowflake {
+        const text = try std.json.innerParse([]const u8, allocator, source, options);
+        return parse(text) catch |err| switch (err) {
+            error.Empty => error.InvalidCharacter,
+            error.InvalidCharacter => error.InvalidCharacter,
+            error.Overflow => error.Overflow,
+        };
+    }
+
+    pub fn jsonStringify(self: Snowflake, jw: anytype) !void {
+        try jw.print("\"{d}\"", .{self.value});
+    }
+
     /// Milliseconds since the Unix epoch encoded in the upper 42 bits.
     pub fn timestampMs(self: Snowflake) u64 {
         return (self.value >> 22) + epoch_ms;
@@ -113,6 +132,31 @@ test "timestamp round trip and epoch rejection" {
     try std.testing.expectEqual(Snowflake.epoch_ms + 1, one_ms.timestampMs());
 
     try std.testing.expectError(error.BeforeEpoch, Snowflake.fromTimestampMs(Snowflake.epoch_ms - 1));
+}
+
+test "9007199254740993 survives without JavaScript precision loss" {
+    const id = try Snowflake.parse("9007199254740993");
+    try std.testing.expectEqual(@as(u64, 9007199254740993), id.toU64());
+}
+
+test "JSON string round-trips and numeric IDs are rejected" {
+    var parsed = try std.json.parseFromSlice(Snowflake, std.testing.allocator, "\"18446744073709551615\"", .{});
+    defer parsed.deinit();
+    try std.testing.expectEqual(std.math.maxInt(u64), parsed.value.toU64());
+
+    const encoded = try std.json.Stringify.valueAlloc(
+        std.testing.allocator,
+        parsed.value,
+        .{},
+    );
+    defer std.testing.allocator.free(encoded);
+    try std.testing.expectEqualStrings("\"18446744073709551615\"", encoded);
+
+    var numeric = std.json.parseFromSlice(Snowflake, std.testing.allocator, "18446744073709551615", .{});
+    if (numeric) |*value| {
+        value.deinit();
+        return error.ExpectedStringOnly;
+    } else |_| {}
 }
 
 test "worker, process and increment bits match the documented layout" {
