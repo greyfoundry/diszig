@@ -7,7 +7,7 @@
 
 Diszig is a native Discord SDK for Zig. We're building the kind of library Zig developers should be able to reach for when they want to write a Discord bot: a client that handles the connection, typed events, builders for the things you send to Discord, and direct access to the API when you need it.
 
-> Early implementation. A Zig build, protocol module, standalone REST transport and Gateway transport/session control exist (Snowflake, ISO8601 timestamps, CDN identity, error context, tolerant JSON helpers, REST transport, multipart uploads, WebSocket framing, bounded zlib-stream decompression, Hello parsing, jittered heartbeat/ACK liveness, Identify/Resume payloads, close classification and bounded recovery policy). REST endpoints, automatic Gateway reconnect orchestration, typed dispatch, sharding, client, builders and voice are not implemented. There is no installable release or supported public client API yet. The features below describe the direction of the project.
+> Early implementation. A Zig build, protocol module, standalone REST transport and Gateway transport/session control exist (Snowflake, ISO8601 timestamps, CDN identity, error context, tolerant JSON helpers, REST transport, multipart uploads, WebSocket framing, bounded zlib-stream decompression, Hello parsing, jittered heartbeat/ACK liveness, Identify/Resume payloads, close classification, bounded recovery policy and a fixed-capacity dispatch queue with raw fallback). REST endpoints, automatic Gateway reconnect orchestration, typed event payloads beyond READY/RESUMED, sharding, client, builders and voice are not implemented. There is no installable release or supported public client API yet. The features below describe the direction of the project.
 
 ## Why Diszig?
 
@@ -52,7 +52,7 @@ tools/                  Repository metadata check
 AGENTS.md               Canonical engineering instructions
 ```
 
-The root Markdown files cover licensing, contribution, security, AI assistance, compatibility and the roadmap. See [architecture](docs/architecture.mdx) for the package layout and implemented surfaces and [gateway](docs/gateway.mdx) for the transport, heartbeat and recovery boundary. REST endpoints, automatic Gateway reconnect orchestration, typed dispatch, client and examples will be added with tested implementation.
+The root Markdown files cover licensing, contribution, security, AI assistance, compatibility and the roadmap. See [architecture](docs/architecture.mdx) for the package layout and implemented surfaces and [gateway](docs/gateway.mdx) for the transport, heartbeat, recovery and dispatch boundary. REST endpoints, automatic Gateway reconnect orchestration, typed event payloads, client and examples will be added with tested implementation.
 
 With Python 3.10+ and Git available, run `python tools/check_repository.py` to check tracked-path exclusions, documentation navigation and skill metadata. This checks repository metadata only. Python is for maintenance tooling; it is not an SDK runtime requirement. The handbook validates locally with `mint validate` and `mint broken-links` in `docs/`.
 

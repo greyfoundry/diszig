@@ -143,7 +143,31 @@ count. When either budget or the attempt count is exhausted the decision is
 `.exhausted`, and the caller stops. The automatic reconnect loop, dispatch and
 sharding are not implemented; the caller drives the delay and reconnect.
 
+## Dispatch and backpressure
+
+`diszig.gateway.dispatch.Queue` is a fixed-capacity FIFO for one shard:
+
+- `tryPush` copies the name, sequence and payload; the transport buffer is not
+  retained.
+- `pop` returns a borrowed event valid until `release` or slot reuse. Call
+  `Event.copy` to retain it past the callback.
+- A full queue returns `error.QueueFull` and increments `droppedCount`. It never
+  grows, blocks the reader or delays a heartbeat.
+- One consumer per queue preserves order. Multiple consumers on one queue break
+  that guarantee.
+- Resume replay can deliver a duplicate. The queue does not deduplicate; use
+  `sequence` when a handler must be idempotent.
+
+`Session.nextDetailed` returns the message plus the parsed envelope (name, op,
+sequence) so the caller can push a dispatch without re-parsing. Control frames
+(heartbeat ACK/request, close, reconnect, invalid session) are handled before
+the event is returned; they never wait for application callbacks.
+
+`diszig.gateway.events.decode` types READY and RESUMED. Every other event is
+`.raw` with the original gateway envelope; EVENT-* packages add typed payloads.
+Typed slices borrow the per-callback arena.
+
 ## Not implemented yet
 
-Automatic reconnect orchestration, typed dispatch, backpressure, sharding and the
-client facade. None of those are claimed by this page.
+Automatic reconnect orchestration, typed event payloads beyond READY/RESUMED,
+sharding and the client facade. None of those are claimed by this page.

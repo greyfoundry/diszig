@@ -34,11 +34,26 @@ pub const Kind = enum {
 
 pub const EventKind = enum { other, ready, resumed };
 
+pub const max_event_name = 64;
+
 pub const Parsed = struct {
     op: i64,
     kind: Kind,
     sequence: ?i64 = null,
     event: EventKind = .other,
+    event_name: [max_event_name]u8 = undefined,
+    event_name_len: usize = 0,
+
+    /// Dispatch name (`t`) when present, otherwise an empty slice.
+    pub fn name(self: *const Parsed) []const u8 {
+        return self.event_name[0..self.event_name_len];
+    }
+};
+
+pub const Detailed = struct {
+    message: Message,
+    /// Present for text payloads; null for binary and close frames.
+    parsed: ?Parsed = null,
 };
 
 pub const Hello = struct {
@@ -63,7 +78,12 @@ pub fn parseEnvelope(
     defer parsed.deinit();
 
     var event: EventKind = .other;
+    var event_name: [max_event_name]u8 = undefined;
+    var event_name_len: usize = 0;
     if (parsed.value.t) |name| {
+        if (name.len > max_event_name) return error.EventNameTooLong;
+        @memcpy(event_name[0..name.len], name);
+        event_name_len = name.len;
         if (std.mem.eql(u8, name, "READY")) {
             event = .ready;
         } else if (std.mem.eql(u8, name, "RESUMED")) {
@@ -75,6 +95,8 @@ pub fn parseEnvelope(
         .kind = classify(parsed.value.op),
         .sequence = parsed.value.s,
         .event = event,
+        .event_name = event_name,
+        .event_name_len = event_name_len,
     };
 }
 
@@ -315,7 +337,7 @@ pub const Session = struct {
     ///
     /// Close, Reconnect and Invalid Session also update `recovery` and set
     /// `last_decision`. A READY payload populates the resumable session state.
-    pub fn next(self: *Session) !Message {
+    pub fn nextDetailed(self: *Session) !Detailed {
         while (true) {
             const message = self.connection.next() catch |err| {
                 switch (err) {
@@ -327,9 +349,9 @@ pub const Session = struct {
             switch (message.kind) {
                 .close => {
                     self.last_decision = self.recovery.onClose(message.close_code, nowMs(self.io));
-                    return message;
+                    return .{ .message = message };
                 },
-                .binary => return message,
+                .binary => return .{ .message = message },
                 .text => {
                     const parsed = try parseEnvelope(
                         self.allocator,
@@ -358,11 +380,11 @@ pub const Session = struct {
                                 resumable,
                                 nowMs(self.io),
                             );
-                            return message;
+                            return .{ .message = message, .parsed = parsed };
                         },
                         .reconnect => {
                             self.last_decision = self.recovery.onReconnect(nowMs(self.io));
-                            return message;
+                            return .{ .message = message, .parsed = parsed };
                         },
                         .dispatch => {
                             if (parsed.sequence) |sequence| {
@@ -383,7 +405,7 @@ pub const Session = struct {
                                 .other => {},
                             }
                             self.last_decision = null;
-                            return message;
+                            return .{ .message = message, .parsed = parsed };
                         },
                         .other => {
                             if (parsed.sequence) |sequence| {
@@ -392,12 +414,17 @@ pub const Session = struct {
                                 self.heartbeat_lock.unlock(self.io);
                                 self.recovery.onDispatch(sequence);
                             }
-                            return message;
+                            return .{ .message = message, .parsed = parsed };
                         },
                     }
                 },
             }
         }
+    }
+
+    /// Convenience wrapper for callers that do not need the parsed envelope.
+    pub fn next(self: *Session) !Message {
+        return (try self.nextDetailed()).message;
     }
 
     pub fn lastSequence(self: *Session) !?i64 {
@@ -569,6 +596,16 @@ test "ready and resumed are distinguished without materialising d" {
         "{\"op\":0,\"t\":\"MESSAGE_CREATE\",\"s\":10,\"d\":{}}",
         1024,
     )).event);
+}
+
+test "envelope keeps the dispatch name for the queue" {
+    const parsed = try parseEnvelope(
+        std.testing.allocator,
+        "{\"op\":0,\"t\":\"MESSAGE_CREATE\",\"s\":4,\"d\":{\"id\":\"1\"}}",
+        1024,
+    );
+    try std.testing.expectEqualStrings("MESSAGE_CREATE", parsed.name());
+    try std.testing.expectEqual(@as(?i64, 4), parsed.sequence);
 }
 
 test "ready populates the resumable state" {

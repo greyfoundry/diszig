@@ -227,6 +227,18 @@ pub fn build(b: *std.Build) void {
     });
     test_step.dependOn(&b.addRunArtifact(public_recovery_tests).step);
 
+    const public_dispatch_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/gateway/dispatch.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_dispatch_tests).step);
+
     const package_check = b.addSystemCommand(&.{ "python", "tools/check_package.py" });
     const package_self_test = b.addSystemCommand(&.{ "python", "tools/check_package.py", "--self-test" });
     const repository_check = b.addSystemCommand(&.{ "python", "tools/check_repository.py" });

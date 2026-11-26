@@ -5,6 +5,8 @@
 //! by later packages; nothing here claims a working Gateway client.
 
 pub const compression = @import("compression.zig");
+pub const dispatch = @import("dispatch.zig");
+pub const events = @import("events/root.zig");
 pub const heartbeat = @import("heartbeat.zig");
 pub const recovery = @import("recovery.zig");
 pub const session = @import("session.zig");
@@ -21,3 +23,5 @@ pub const Recovery = recovery.Recovery;
 pub const Decision = recovery.Decision;
 pub const SessionState = recovery.SessionState;
 pub const Identify = recovery.Identify;
+pub const DispatchQueue = dispatch.Queue;
+pub const DispatchEvent = dispatch.Event;
