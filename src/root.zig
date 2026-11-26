@@ -14,6 +14,7 @@ pub const errors = protocol.errors;
 pub const flags = protocol.flags;
 pub const json = protocol.json;
 pub const permissions = protocol.permissions;
+pub const presence = protocol.presence;
 
 test "root re-exports the protocol snowflake" {
     const id = try Snowflake.parse("18446744073709551615");

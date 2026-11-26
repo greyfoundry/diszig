@@ -12,33 +12,8 @@
 
 const std = @import("std");
 
-/// Inbound-only presence. A field of this type must have a `.absent` default
-/// so a missing key is distinguishable from an explicit `null` and a value.
-///
-/// Do not use this type for outbound requests: it intentionally has no
-/// stringify implementation. Request structs should omit fields or use `?T`
-/// according to the endpoint contract.
-pub fn Presence(comptime T: type) type {
-    return union(enum) {
-        absent: void,
-        null: void,
-        value: T,
-
-        pub fn jsonParse(
-            allocator: std.mem.Allocator,
-            source: anytype,
-            options: std.json.ParseOptions,
-        ) !@This() {
-            switch (try source.peekNextTokenType()) {
-                .null => {
-                    _ = try source.next();
-                    return .null;
-                },
-                else => return .{ .value = try std.json.innerParse(T, allocator, source, options) },
-            }
-        }
-    };
-}
+/// Inbound-only presence, re-exported for callers that import `json`.
+pub const Presence = @import("presence.zig").Presence;
 
 /// Inbound integer enum that keeps an unknown value instead of failing the
 /// whole payload. `known()` maps a recognized value or returns null.
@@ -76,8 +51,40 @@ pub fn requireExactlyOne(object: std.json.ObjectMap, names: []const []const u8) 
     if (count != 1) return error.InvalidUnionBranch;
 }
 
-/// Parses only after checking the raw byte length. This bounds untrusted input
-/// before the parser allocates.
+/// Rejects excessive `{`/`[` nesting before the parser allocates its stack.
+/// String contents and escapes are ignored. JSON syntax errors are still
+/// reported by the parser.
+pub fn checkDepth(bytes: []const u8, max_depth: usize) error{NestingTooDeep}!void {
+    var depth: usize = 0;
+    var in_string = false;
+    var escaped = false;
+    for (bytes) |c| {
+        if (in_string) {
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+            continue;
+        }
+        switch (c) {
+            '"' => in_string = true,
+            '{', '[' => {
+                depth += 1;
+                if (depth > max_depth) return error.NestingTooDeep;
+            },
+            '}', ']' => {
+                if (depth > 0) depth -= 1;
+            },
+            else => {},
+        }
+    }
+}
+
+/// Parses only after checking the raw byte length and nesting depth. This
+/// bounds untrusted input before the parser allocates.
 pub fn parseBounded(
     comptime T: type,
     allocator: std.mem.Allocator,
@@ -86,6 +93,7 @@ pub fn parseBounded(
     options: std.json.ParseOptions,
 ) !std.json.Parsed(T) {
     if (bytes.len > max_bytes) return error.InputTooLarge;
+    try checkDepth(bytes, 128);
     return std.json.parseFromSlice(T, allocator, bytes, options);
 }
 
@@ -169,6 +177,31 @@ test "bounded parse rejects oversize input before allocation" {
     var parsed = try parseBounded(Patch, std.testing.allocator, bytes, 1024, .{});
     defer parsed.deinit();
     try std.testing.expect(parsed.value.name == .value);
+}
+
+test "absent, null and zero are three distinct states" {
+    const Value = struct { x: Presence(i64) = .absent };
+
+    var missing = try std.json.parseFromSlice(Value, std.testing.allocator, "{}", .{});
+    defer missing.deinit();
+    try std.testing.expect(missing.value.x.isAbsent());
+
+    var explicit_null = try std.json.parseFromSlice(Value, std.testing.allocator, "{\"x\":null}", .{});
+    defer explicit_null.deinit();
+    try std.testing.expect(explicit_null.value.x.isNull());
+
+    var zero = try std.json.parseFromSlice(Value, std.testing.allocator, "{\"x\":0}", .{});
+    defer zero.deinit();
+    try std.testing.expectEqual(@as(?i64, 0), zero.value.x.get());
+}
+
+test "excessive nesting and oversize input fail before parsing" {
+    try std.testing.expectError(error.NestingTooDeep, checkDepth("[[[0]]]", 2));
+    try checkDepth("[[0]]", 2);
+
+    var buffer: [256]u8 = undefined;
+    @memset(buffer[0..], '[');
+    try std.testing.expectError(error.NestingTooDeep, checkDepth(&buffer, 128));
 }
 
 test "unknown inbound fields are ignored only when requested" {

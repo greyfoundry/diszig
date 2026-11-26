@@ -7,6 +7,7 @@ pub const errors = @import("errors.zig");
 pub const flags = @import("flags.zig");
 pub const json = @import("json.zig");
 pub const permissions = @import("permissions.zig");
+pub const presence = @import("presence.zig");
 pub const snowflake = @import("snowflake.zig");
 pub const timestamp = @import("timestamp.zig");
 
@@ -20,6 +21,7 @@ test {
     _ = flags;
     _ = json;
     _ = permissions;
+    _ = presence;
     _ = snowflake;
     _ = timestamp;
 }
