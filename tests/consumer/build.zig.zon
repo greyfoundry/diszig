@@ -1,0 +1,16 @@
+.{
+    .name = .diszig_consumer,
+    .version = "0.0.0",
+    .fingerprint = 0x5469fb8cf749a056,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{
+        .diszig = .{
+            .path = "../..",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

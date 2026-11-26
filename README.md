@@ -34,7 +34,7 @@ The SDK uses Zig's native build and package system. The current package targets 
 zig build test
 ```
 
-Tests pass in Debug and ReleaseSafe on Windows x86-64. Linux, macOS and ARM64 remain unverified targets. An external package import is checked during development; examples and CI will be compiled rather than maintained as disconnected snippets.
+Tests pass in Debug and ReleaseSafe on Windows x86-64. Linux, macOS and ARM64 remain unverified targets. The package allowlist is checked with `python tools/check_package.py`, and `python tests/consumer/fetch_test.py` builds a fresh consumer from a hashed source archive. Examples and CI will be compiled rather than maintained as disconnected snippets.
 
 The current repository contains:
 
