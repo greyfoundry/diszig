@@ -1,6 +1,6 @@
 //! Gateway dispatch event surface.
 //!
-//! Only READY and RESUMED are typed in this phase. Every other event is
+//! READY, RESUMED and the channel event batch are typed. Every other event is
 //! delivered as `Raw` with the original gateway envelope. EVENT-* packages add
 //! typed payloads without changing the queue or ordering contract.
 //!
@@ -10,6 +10,8 @@
 
 const std = @import("std");
 const protocol = @import("protocol");
+
+pub const channels = @import("channels.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -27,6 +29,11 @@ pub const Raw = struct {
 pub const Event = union(enum) {
     ready: Ready,
     resumed: void,
+    channel_create: channels.Channel,
+    channel_update: channels.Channel,
+    channel_delete: channels.Channel,
+    channel_info: channels.ChannelInfo,
+    channel_pins_update: channels.ChannelPinsUpdate,
     raw: Raw,
 };
 
@@ -42,6 +49,15 @@ pub fn decode(
 ) !Event {
     if (std.mem.eql(u8, name, "RESUMED")) return .resumed;
     if (!std.mem.eql(u8, name, "READY")) {
+        if (try channels.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |channel| .{ .channel_create = channel },
+                .update => |channel| .{ .channel_update = channel },
+                .delete => |channel| .{ .channel_delete = channel },
+                .info => |info| .{ .channel_info = info },
+                .pins_update => |pins| .{ .channel_pins_update = pins },
+            };
+        }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };
     }
 
@@ -61,6 +77,20 @@ pub fn decode(
         .resume_gateway_url = wire.d.resume_gateway_url,
         .sequence = sequence,
     } };
+}
+
+test "channel events are typed through the shared dispatcher" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const event = try decode(
+        arena.allocator(),
+        "CHANNEL_CREATE",
+        1,
+        "{\"op\":0,\"t\":\"CHANNEL_CREATE\",\"s\":1,\"d\":{\"id\":\"1\",\"type\":0}}",
+        1024,
+    );
+    try std.testing.expect(event == .channel_create);
+    try std.testing.expectEqual(@as(u64, 1), event.channel_create.id.toU64());
 }
 
 test "ready is typed and borrows from the arena" {

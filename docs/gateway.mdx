@@ -163,9 +163,18 @@ sequence) so the caller can push a dispatch without re-parsing. Control frames
 (heartbeat ACK/request, close, reconnect, invalid session) are handled before
 the event is returned; they never wait for application callbacks.
 
-`diszig.gateway.events.decode` types READY and RESUMED. Every other event is
-`.raw` with the original gateway envelope; EVENT-* packages add typed payloads.
-Typed slices borrow the per-callback arena.
+`diszig.gateway.events.decode` types READY, RESUMED and the first channel batch:
+CHANNEL_CREATE, CHANNEL_UPDATE, CHANNEL_DELETE, CHANNEL_INFO and
+CHANNEL_PINS_UPDATE. Every other event is `.raw` with the original gateway
+envelope; EVENT-* packages add typed payloads.
+
+Typed channel payloads use `Presence` for nullable fields: an omitted update
+field is absent and does not clear it, while an explicit null is a clear.
+Unknown channel and overwrite enum values are retained in `InboundEnum`; unknown
+JSON fields are ignored. The batch-1 channel model covers identity and type,
+guild, name/topic, position, permission overwrites, pin timestamp, voice limits,
+flags and thread counts; MODEL-CHANNELS-* extends the full resource. Typed
+slices borrow the per-callback arena.
 
 ## Send operations and intents
 
