@@ -10,6 +10,7 @@ These are the binding contracts for Diszig implementation. Only the shared error
 - `init` either returns a fully usable value or fails after releasing every allocation it made. A partially initialized client is never returned.
 - Operations that produce caller-controlled data take an allocator and return an owned result. The caller calls that result's `deinit` with the same allocator.
 - The client copies any input it must retain beyond the call. It never stores a caller's borrowed slice.
+- WebSocket send buffers are not reusable after a send: the selected transport masks the caller's mutable payload in place. Outbound frames are built in a transport-owned scratch buffer or copied first.
 - `deinit` is called exactly once, after the owner has stopped and joined its work. It is not safe to call concurrently with other methods.
 
 ## Event data
