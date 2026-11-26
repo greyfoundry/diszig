@@ -75,6 +75,30 @@
       "live_verified": false
     },
     {
+      "id": "rest.uploads",
+      "kind": "rest-upload",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/multipart.zig", "src/root.zig"],
+      "tests": ["packages/rest/multipart.zig", "tests/rest/uploads.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L435",
+      "live_verified": false
+    },
+    {
+      "id": "rest.cdn-helpers",
+      "kind": "rest-cdn",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/cdn.zig", "src/root.zig"],
+      "tests": ["packages/rest/cdn.zig", "tests/rest/uploads.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L336",
+      "live_verified": false
+    },
+    {
       "id": "rest.retry-policy",
       "kind": "rest-scheduling",
       "status": "implemented",
