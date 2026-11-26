@@ -117,11 +117,33 @@ heartbeats. The caller's I/O owner keeps calling `next`, which consumes ACKs and
 server requests. User handlers must run on worker capacity (GW-04), never on
 either path. `stopHeartbeat` joins the thread; `deinit` calls it.
 
-This phase does not Identify. Discord will close the connection after Hello, so
-the session is only usable against the local fixture until GW-03 adds Identify
-and Resume.
+Identify and Resume payloads are validated and built by
+`diszig.gateway.recovery.writeIdentify` / `writeResume`. Credentials and
+session IDs are restricted to token-safe characters so they cannot inject JSON;
+the session wipes its scratch buffer after sending. `sendIdentify` and
+`sendResume` never retain the token.
+
+`Session.next` captures a READY payload into `recovery.state` (session ID,
+`resume_gateway_url`, last sequence) and a RESUMED payload resets the backoff.
+It also updates `recovery` for:
+
+- **Close**: documented 4000-4014 codes are classified. 4004, 4010-4014 are
+  fatal and never loop. 4007 and 4009 require a new Identify. Normal 1000/1001
+  closures stop. Abnormal loss and unknown 4xxx codes are resumable but bounded.
+- **Invalid Session (op 9)**: `d: true` resumes when possible; `d: false` clears
+  the session and Identifies.
+- **Reconnect (op 7)**: resumes when possible, otherwise Identifies.
+- **Transport loss without a close frame**: `onTransportLost` treats it as an
+  abnormal, resumable closure.
+
+Identify and resume allowances are separate fixed-window budgets. Identify
+defaults to Discord's documented 1000 per 24 hours; the resume budget is a
+Diszig loop guard. Backoff is exponential from 1 s to 60 s with a bounded attempt
+count. When either budget or the attempt count is exhausted the decision is
+`.exhausted`, and the caller stops. The automatic reconnect loop, dispatch and
+sharding are not implemented; the caller drives the delay and reconnect.
 
 ## Not implemented yet
 
-Identify, Resume, close code classification, typed dispatch, backpressure,
-sharding and the client facade. None of those are claimed by this page.
+Automatic reconnect orchestration, typed dispatch, backpressure, sharding and the
+client facade. None of those are claimed by this page.

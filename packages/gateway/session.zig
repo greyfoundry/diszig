@@ -1,19 +1,26 @@
-//! Gateway session control: Hello, envelope parsing and heartbeat driving.
+//! Gateway session control: Hello, Identify/Resume payloads, recovery state,
+//! envelope parsing and heartbeat driving.
 //!
-//! This is not a complete Gateway client. Identify, Resume, close classification
-//! and dispatch are added by later packages. The session owns one transport and
-//! one heartbeat deadline. Its I/O loop must call `next` from a single owner;
-//! user handlers belong on worker capacity (GW-04) and must never run on this
-//! path. The optional heartbeat thread only writes heartbeats.
+//! This is not a complete Gateway client. The recovery policy and payloads are
+//! implemented, but the automatic reconnect loop and typed dispatch are later
+//! packages. The session owns one transport and one heartbeat deadline. Its I/O
+//! loop must call `next` from a single owner; user handlers belong on worker
+//! capacity (GW-04) and must never run on this path. The optional heartbeat
+//! thread only writes heartbeats.
 
 const std = @import("std");
 const protocol = @import("protocol");
 const transport = @import("transport.zig");
 const heartbeat_mod = @import("heartbeat.zig");
+const recovery_mod = @import("recovery.zig");
 
 pub const Heartbeat = heartbeat_mod.Heartbeat;
 pub const Action = heartbeat_mod.Action;
 pub const Message = transport.Message;
+pub const Recovery = recovery_mod.Recovery;
+pub const Decision = recovery_mod.Decision;
+pub const SessionState = recovery_mod.SessionState;
+pub const Identify = recovery_mod.Identify;
 
 pub const Kind = enum {
     dispatch,
@@ -25,18 +32,21 @@ pub const Kind = enum {
     other,
 };
 
+pub const EventKind = enum { other, ready, resumed };
+
 pub const Parsed = struct {
     op: i64,
     kind: Kind,
     sequence: ?i64 = null,
+    event: EventKind = .other,
 };
 
 pub const Hello = struct {
     heartbeat_interval_ms: u64,
 };
 
-/// Parses only the top-level `op` and `s`. Unknown fields, including a large
-/// `d`, are skipped without building a value tree.
+/// Parses only the top-level `op`, `s` and the dispatch name. Unknown fields,
+/// including a large `d`, are skipped without building a value tree.
 pub fn parseEnvelope(
     allocator: std.mem.Allocator,
     bytes: []const u8,
@@ -45,15 +55,26 @@ pub fn parseEnvelope(
     const Wire = struct {
         op: i64,
         s: ?i64 = null,
+        t: ?[]const u8 = null,
     };
     var parsed = try protocol.json.parseBounded(Wire, allocator, bytes, max_bytes, .{
         .ignore_unknown_fields = true,
     });
     defer parsed.deinit();
+
+    var event: EventKind = .other;
+    if (parsed.value.t) |name| {
+        if (std.mem.eql(u8, name, "READY")) {
+            event = .ready;
+        } else if (std.mem.eql(u8, name, "RESUMED")) {
+            event = .resumed;
+        }
+    }
     return .{
         .op = parsed.value.op,
         .kind = classify(parsed.value.op),
         .sequence = parsed.value.s,
+        .event = event,
     };
 }
 
@@ -76,6 +97,51 @@ pub fn parseHello(
     if (parsed.value.op != 10) return error.NotHello;
     if (parsed.value.d.heartbeat_interval <= 0) return error.InvalidHello;
     return .{ .heartbeat_interval_ms = @intCast(parsed.value.d.heartbeat_interval) };
+}
+
+/// Copies the Ready fields needed for Resume into the recovery state.
+pub fn parseReadyInto(
+    allocator: std.mem.Allocator,
+    bytes: []const u8,
+    max_bytes: usize,
+    recovery: *recovery_mod.Recovery,
+    sequence: ?i64,
+) !void {
+    const Wire = struct {
+        op: i64,
+        d: struct {
+            session_id: []const u8,
+            resume_gateway_url: []const u8,
+        },
+    };
+    var parsed = try protocol.json.parseBounded(Wire, allocator, bytes, max_bytes, .{
+        .ignore_unknown_fields = true,
+    });
+    defer parsed.deinit();
+    if (parsed.value.op != 0) return error.NotReady;
+    try recovery.onReady(
+        parsed.value.d.session_id,
+        parsed.value.d.resume_gateway_url,
+        sequence,
+    );
+}
+
+/// Invalid Session's `d` is the only payload boolean this phase interprets.
+pub fn parseInvalidSession(
+    allocator: std.mem.Allocator,
+    bytes: []const u8,
+    max_bytes: usize,
+) !bool {
+    const Wire = struct {
+        op: i64,
+        d: bool,
+    };
+    var parsed = try protocol.json.parseBounded(Wire, allocator, bytes, max_bytes, .{
+        .ignore_unknown_fields = true,
+    });
+    defer parsed.deinit();
+    if (parsed.value.op != 9) return error.NotInvalidSession;
+    return parsed.value.d;
 }
 
 fn classify(op: i64) Kind {
@@ -107,11 +173,13 @@ pub const Session = struct {
     driver_stop: std.atomic.Value(bool),
     driver_failed: std.atomic.Value(bool),
     zombie: std.atomic.Value(bool),
+    recovery: Recovery,
+    last_decision: ?Decision,
     max_payload_bytes: usize,
 
     /// Connects the transport, requires Hello as the first payload and arms the
-    /// heartbeat. It does not Identify, so Discord will close the connection
-    /// after Hello until GW-03 adds Identify/Resume.
+    /// heartbeat. It does not Identify or Resume; call `sendIdentify` or
+    /// `sendResume` after this returns.
     pub fn connect(allocator: std.mem.Allocator, io: std.Io, options: Options) !Session {
         var connection = try transport.Connection.connect(allocator, io, options.transport);
         errdefer connection.deinit();
@@ -139,6 +207,8 @@ pub const Session = struct {
             .driver_stop = .init(false),
             .driver_failed = .init(false),
             .zombie = .init(false),
+            .recovery = Recovery.init(now, .{}),
+            .last_decision = null,
             .max_payload_bytes = options.max_payload_bytes,
         };
     }
@@ -164,8 +234,44 @@ pub const Session = struct {
         self.stopHeartbeat();
         // The driver is joined and no reader may run concurrently with deinit.
         self.heartbeat.stop();
+        self.recovery.state.clear();
         self.connection.deinit();
         self.* = undefined;
+    }
+
+    /// Sends Identify. The token is copied into a scratch buffer, sent through
+    /// the transport (which copies and masks), then the scratch is wiped.
+    pub fn sendIdentify(self: *Session, identify: Identify) !void {
+        var buffer: [1024]u8 = undefined;
+        defer @memset(&buffer, 0);
+        const payload = try recovery_mod.writeIdentify(&buffer, identify);
+        try self.connection.sendText(payload);
+    }
+
+    /// Sends Resume for the stored session. Requires a Ready-derived session ID
+    /// and a sequence. The token is never stored by the session.
+    pub fn sendResume(self: *Session, token: []const u8) !void {
+        const session_id = self.recovery.state.id();
+        if (session_id.len == 0) return error.NoSession;
+        const sequence = self.recovery.state.sequence orelse return error.NoSequence;
+        var buffer: [1024]u8 = undefined;
+        defer @memset(&buffer, 0);
+        const payload = try recovery_mod.writeResume(&buffer, token, session_id, sequence);
+        try self.connection.sendText(payload);
+    }
+
+    /// Decision produced by the last close, reconnect or invalid-session
+    /// payload. The caller drives the reconnect and backoff delay.
+    pub fn lastDecision(self: *const Session) ?Decision {
+        return self.last_decision;
+    }
+
+    /// Records a transport loss that arrived without a close frame (abnormal
+    /// closure). Treated as resumable, bounded by the recovery budgets.
+    pub fn onTransportLost(self: *Session) Decision {
+        const decision = self.recovery.onClose(null, nowMs(self.io));
+        self.last_decision = decision;
+        return decision;
     }
 
     /// Sends a heartbeat if one is due or the server requested one. Safe to
@@ -206,11 +312,24 @@ pub const Session = struct {
     /// consumed and update the scheduler; dispatch, reconnect, invalid-session
     /// and unknown payloads are returned to the caller. A close frame is
     /// returned as-is. Reads block; close from another owner to cancel.
+    ///
+    /// Close, Reconnect and Invalid Session also update `recovery` and set
+    /// `last_decision`. A READY payload populates the resumable session state.
     pub fn next(self: *Session) !Message {
         while (true) {
-            const message = try self.connection.next();
+            const message = self.connection.next() catch |err| {
+                switch (err) {
+                    error.Closed, error.ConnectionResetByPeer, error.Unexpected => _ = self.onTransportLost(),
+                    else => {},
+                }
+                return err;
+            };
             switch (message.kind) {
-                .close, .binary => return message,
+                .close => {
+                    self.last_decision = self.recovery.onClose(message.close_code, nowMs(self.io));
+                    return message;
+                },
+                .binary => return message,
                 .text => {
                     const parsed = try parseEnvelope(
                         self.allocator,
@@ -229,11 +348,49 @@ pub const Session = struct {
                             self.heartbeat_lock.unlock(self.io);
                         },
                         .hello => return error.UnexpectedHello,
-                        .dispatch, .reconnect, .invalid_session, .other => {
+                        .invalid_session => {
+                            const resumable = parseInvalidSession(
+                                self.allocator,
+                                message.data,
+                                self.max_payload_bytes,
+                            ) catch false;
+                            self.last_decision = self.recovery.onInvalidSession(
+                                resumable,
+                                nowMs(self.io),
+                            );
+                            return message;
+                        },
+                        .reconnect => {
+                            self.last_decision = self.recovery.onReconnect(nowMs(self.io));
+                            return message;
+                        },
+                        .dispatch => {
                             if (parsed.sequence) |sequence| {
                                 try self.heartbeat_lock.lock(self.io);
                                 self.heartbeat.setSequence(sequence);
                                 self.heartbeat_lock.unlock(self.io);
+                                self.recovery.onDispatch(sequence);
+                            }
+                            switch (parsed.event) {
+                                .ready => try parseReadyInto(
+                                    self.allocator,
+                                    message.data,
+                                    self.max_payload_bytes,
+                                    &self.recovery,
+                                    parsed.sequence,
+                                ),
+                                .resumed => self.recovery.backoff.reset(),
+                                .other => {},
+                            }
+                            self.last_decision = null;
+                            return message;
+                        },
+                        .other => {
+                            if (parsed.sequence) |sequence| {
+                                try self.heartbeat_lock.lock(self.io);
+                                self.heartbeat.setSequence(sequence);
+                                self.heartbeat_lock.unlock(self.io);
+                                self.recovery.onDispatch(sequence);
                             }
                             return message;
                         },
@@ -390,4 +547,58 @@ test "unknown op is retained as other" {
     const parsed = try parseEnvelope(std.testing.allocator, "{\"op\":99}", 64);
     try std.testing.expectEqual(Kind.other, parsed.kind);
     try std.testing.expectEqual(@as(?i64, null), parsed.sequence);
+}
+
+test "ready and resumed are distinguished without materialising d" {
+    const ready = try parseEnvelope(
+        std.testing.allocator,
+        "{\"op\":0,\"t\":\"READY\",\"s\":3,\"d\":{\"session_id\":\"s\",\"resume_gateway_url\":\"wss://r\"}}",
+        1024,
+    );
+    try std.testing.expectEqual(EventKind.ready, ready.event);
+    try std.testing.expectEqual(@as(?i64, 3), ready.sequence);
+
+    const resumed = try parseEnvelope(
+        std.testing.allocator,
+        "{\"op\":0,\"t\":\"RESUMED\",\"s\":9,\"d\":{}}",
+        1024,
+    );
+    try std.testing.expectEqual(EventKind.resumed, resumed.event);
+    try std.testing.expectEqual(EventKind.other, (try parseEnvelope(
+        std.testing.allocator,
+        "{\"op\":0,\"t\":\"MESSAGE_CREATE\",\"s\":10,\"d\":{}}",
+        1024,
+    )).event);
+}
+
+test "ready populates the resumable state" {
+    var rec = Recovery.init(0, .{});
+    try parseReadyInto(
+        std.testing.allocator,
+        "{\"op\":0,\"t\":\"READY\",\"s\":3,\"d\":{\"session_id\":\"sid-1\",\"resume_gateway_url\":\"wss://resume\"}}",
+        1024,
+        &rec,
+        3,
+    );
+    try std.testing.expectEqualStrings("sid-1", rec.state.id());
+    try std.testing.expectEqualStrings("wss://resume", rec.state.url());
+    try std.testing.expectEqual(@as(?i64, 3), rec.state.sequence);
+    try std.testing.expect(rec.canResume());
+}
+
+test "invalid session boolean drives the recovery decision" {
+    try std.testing.expect(try parseInvalidSession(
+        std.testing.allocator,
+        "{\"op\":9,\"d\":true}",
+        64,
+    ));
+    try std.testing.expect(!try parseInvalidSession(
+        std.testing.allocator,
+        "{\"op\":9,\"d\":false}",
+        64,
+    ));
+    try std.testing.expectError(
+        error.NotInvalidSession,
+        parseInvalidSession(std.testing.allocator, "{\"op\":10,\"d\":true}", 64),
+    );
 }

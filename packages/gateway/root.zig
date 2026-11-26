@@ -6,6 +6,7 @@
 
 pub const compression = @import("compression.zig");
 pub const heartbeat = @import("heartbeat.zig");
+pub const recovery = @import("recovery.zig");
 pub const session = @import("session.zig");
 pub const transport = @import("transport.zig");
 
@@ -16,3 +17,7 @@ pub const Message = transport.Message;
 pub const Url = transport.Url;
 pub const Heartbeat = heartbeat.Heartbeat;
 pub const Session = session.Session;
+pub const Recovery = recovery.Recovery;
+pub const Decision = recovery.Decision;
+pub const SessionState = recovery.SessionState;
+pub const Identify = recovery.Identify;
