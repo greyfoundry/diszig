@@ -12,6 +12,9 @@
 **/*.key
 **/coverage/
 **/test-results/
+# The root coverage manifest is evidence, not generated coverage output.
+!/coverage/
+!/coverage/**
 **/.DS_Store
 /.claude/settings.local.json
 /.cursor/local/

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "generated_by": "hand-maintained; checked by tools/check_coverage.py",
+  "surfaces": [
+    {
+      "id": "protocol.snowflake",
+      "kind": "primitive",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/snowflake.zig", "src/root.zig"],
+      "tests": ["packages/protocol/snowflake.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/reference.mdx#L141",
+      "live_verified": false
+    },
+    {
+      "id": "protocol.error-context",
+      "kind": "primitive",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/errors.zig", "src/root.zig"],
+      "tests": ["packages/protocol/errors.zig"],
+      "docs": ["docs/ownership.mdx"],
+      "source": "internal contract; see docs/ownership.mdx",
+      "live_verified": false
+    },
+    {
+      "id": "protocol.json-mapping",
+      "kind": "primitive",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/protocol/json.zig", "src/root.zig"],
+      "tests": ["packages/protocol/json.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
+      "live_verified": false
+    }
+  ]
+}

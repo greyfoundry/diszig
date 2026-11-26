@@ -1,0 +1,62 @@
+---
+title: 'Coverage'
+---
+
+Coverage is tracked as evidence, not as a percentage. The manifest at
+`coverage/coverage.json` records each implemented surface and is validated by
+`python tools/check_coverage.py`. Internal planning inventories are not public
+proof.
+
+## Axes
+
+Each surface tracks these independently:
+
+- **Typed**: a real public type or function exists.
+- **Raw**: a documented raw request/event path exists. Raw support is not typed
+  parity.
+- **Tested**: a test file exists and contains an executable test block.
+- **Documented**: a public documentation page or contract exists.
+- **Live verified**: an authorized test against Discord succeeded. This requires
+  a date, authorization reference, exact artifact and result.
+
+A surface can be typed but not documented, or documented but not live verified.
+Those states are reported separately and never merged into a single "done" flag.
+
+## Current status
+
+Implemented and tested primitives:
+
+- Snowflake parsing, formatting and timestamp helpers.
+- Caller-owned bounded error context with credential redaction.
+- Tolerant inbound JSON helpers: presence, unknown integer enums, one-of
+  validation and bounded parsing.
+
+No REST route, Gateway event, component, interaction, sharding mode or voice
+capability is implemented or live verified. Planned and gated surfaces remain in
+the internal inventory with an owner and source rationale; they are not counted
+as shipped.
+
+## Gated and external scopes
+
+A surface may be marked `gated`, `external` or `deprecated` with a source and
+reason. Gated product capabilities (for example approved-app RPC, monetization
+or provisional accounts) remain visible and are not silently removed. External
+client SDK boundaries are documented rather than emulated.
+
+## Fixtures
+
+Synthetic fixtures live under `tests/fixtures/` and follow the rules in its
+README. They must not contain credentials or private user data. Live tests are
+separate and require explicit authorization.
+
+## Commands
+
+```bash
+python tools/check_coverage.py
+python tools/check_coverage.py --self-test
+zig build check
+```
+
+The checker rejects an implemented surface with no symbol, test or documentation
+evidence, a live-verified surface with no dated evidence, and fixture files that
+look like credentials.
