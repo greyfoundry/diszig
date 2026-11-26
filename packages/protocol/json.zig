@@ -40,6 +40,26 @@ pub fn InboundEnum(comptime E: type) type {
     };
 }
 
+/// Inbound string enum that keeps an unknown value instead of failing the whole
+/// payload. `known()` maps a recognized value or returns null.
+pub fn InboundStringEnum(comptime E: type) type {
+    return struct {
+        raw: []const u8,
+
+        pub fn jsonParse(
+            allocator: std.mem.Allocator,
+            source: anytype,
+            options: std.json.ParseOptions,
+        ) !@This() {
+            return .{ .raw = try std.json.innerParse([]const u8, allocator, source, options) };
+        }
+
+        pub fn known(self: @This()) ?E {
+            return std.meta.stringToEnum(E, self.raw);
+        }
+    };
+}
+
 /// Enforces an OpenAPI `x-discord-union: oneOf` object shape: exactly one of
 /// the named keys must be present. Used after `std.json` has produced an
 /// object, before the caller interprets the branch.
@@ -139,6 +159,18 @@ test "unknown inbound enum is retained and recoverable" {
     defer unknown.deinit();
     try std.testing.expectEqual(@as(?ChannelType, null), unknown.value.known());
     try std.testing.expectEqual(@as(i64, 99), unknown.value.raw.integer);
+}
+
+test "unknown inbound string enum is retained and recoverable" {
+    const Kind = enum { twitch, youtube };
+    var known = try std.json.parseFromSlice(InboundStringEnum(Kind), std.testing.allocator, "\"twitch\"", .{});
+    defer known.deinit();
+    try std.testing.expectEqual(Kind.twitch, known.value.known().?);
+
+    var unknown = try std.json.parseFromSlice(InboundStringEnum(Kind), std.testing.allocator, "\"future\"", .{});
+    defer unknown.deinit();
+    try std.testing.expectEqual(@as(?Kind, null), unknown.value.known());
+    try std.testing.expectEqualStrings("future", unknown.value.raw);
 }
 
 test "one-of object requires exactly one branch" {
