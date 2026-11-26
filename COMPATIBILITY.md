@@ -4,7 +4,7 @@ The research baseline is Zig 0.17.1, listed as stable on the [official download 
 
 ## Verified compiler facts
 
-The official x86-64 Windows archive for 0.17.1 was checked against the SHA-256 in the download index and its minisign signature was verified. A focused probe using the installed standard library passes in Debug and ReleaseSafe on Windows 11 x86-64. It covers module imports, JSON decoding, explicit null versus absent fields, defaulted fields and every allocation point failing with clean unwinding.
+The official x86-64 Windows archive for 0.17.1 was checked against the SHA-256 in the download index and its minisign signature was verified. A focused probe using the installed standard library passes in Debug and ReleaseSafe on Windows 11 x86-64. The root package and its protocol module also build and pass `zig build test` in both modes on that host, and an external package consumer imports the root module.
 
 This establishes compiler usability for the first implementation slice. It does not establish a supported compiler range, Linux or macOS runtime support, ARM64 support, CI coverage or live Discord behaviour.
 

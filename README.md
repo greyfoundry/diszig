@@ -7,7 +7,7 @@
 
 Diszig is a native Discord SDK for Zig. We're building the kind of library Zig developers should be able to reach for when they want to write a Discord bot: a client that handles the connection, typed events, builders for the things you send to Discord, and direct access to the API when you need it.
 
-> Planning and repository setup only. No SDK source, Zig build, tested public API or installable release exists yet. The features below describe the direction of the project.
+> Early implementation. A Zig build and protocol module exist (Snowflake, error context, tolerant JSON helpers). REST, Gateway, client, builders, sharding and voice are not implemented. There is no installable release or supported public client API yet. The features below describe the direction of the project.
 
 ## Why Diszig?
 
@@ -28,11 +28,20 @@ See [ROADMAP.md](ROADMAP.md) and [COMPATIBILITY.md](COMPATIBILITY.md) for scope 
 
 ## Development
 
-The SDK will use Zig's native build and package system. The supported compiler and working build commands will be published once the initial package has been verified. Examples will be compiled as part of CI rather than maintained as disconnected snippets.
+The SDK uses Zig's native build and package system. The current package targets Zig 0.17.1 and exposes a `diszig` module plus a lower-level `protocol` module. Run:
+
+```bash
+zig build test
+```
+
+Tests pass in Debug and ReleaseSafe on Windows x86-64. Linux, macOS and ARM64 remain unverified targets. An external package import is checked during development; examples and CI will be compiled rather than maintained as disconnected snippets.
 
 The current repository contains:
 
 ```text
+build.zig, build.zig.zon  Root package and module graph
+src/root.zig              Public entrypoint
+packages/protocol/        Snowflake, error context and JSON helpers
 .agents/skills/          Shared project workflows
 .claude/skills/          Claude pointers to the shared workflows
 .cursor/rules/          Cursor pointer to AGENTS.md
@@ -43,9 +52,9 @@ tools/                  Repository metadata check
 AGENTS.md               Canonical engineering instructions
 ```
 
-The root Markdown files cover licensing, contribution, security, AI assistance, compatibility and the roadmap. See [architecture](docs/architecture.mdx) for the planned SDK package layout. Source packages, examples and CI workflows will be added with tested implementation.
+The root Markdown files cover licensing, contribution, security, AI assistance, compatibility and the roadmap. See [architecture](docs/architecture.mdx) for the package layout and implemented surfaces. REST, Gateway, client and examples will be added with tested implementation.
 
-With Python 3.10+ and Git available, run `python tools/check_repository.py` to check tracked-path exclusions, documentation navigation and skill metadata. This checks repository metadata only. Python is for maintenance tooling; it is not an SDK runtime requirement. The handbook source has not yet been validated or previewed with Mintlify.
+With Python 3.10+ and Git available, run `python tools/check_repository.py` to check tracked-path exclusions, documentation navigation and skill metadata. This checks repository metadata only. Python is for maintenance tooling; it is not an SDK runtime requirement. The handbook validates locally with `mint validate` and `mint broken-links` in `docs/`.
 
 ## Contributing
 

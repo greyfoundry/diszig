@@ -1,0 +1,17 @@
+.{
+    .name = .diszig,
+    .version = "0.0.0",
+    .fingerprint = 0xf1803f32383d74e9,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "packages",
+        "LICENSE",
+        "NOTICE",
+        "THIRD_PARTY_NOTICES.md",
+        "README.md",
+    },
+}
