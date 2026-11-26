@@ -11,6 +11,7 @@ pub const permissions = @import("permissions.zig");
 pub const presence = @import("presence.zig");
 pub const snowflake = @import("snowflake.zig");
 pub const timestamp = @import("timestamp.zig");
+pub const intents = @import("intents.zig");
 pub const version = @import("version.zig");
 
 pub const Snowflake = snowflake.Snowflake;

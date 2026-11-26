@@ -9,6 +9,7 @@ pub const dispatch = @import("dispatch.zig");
 pub const events = @import("events/root.zig");
 pub const heartbeat = @import("heartbeat.zig");
 pub const recovery = @import("recovery.zig");
+pub const send = @import("send.zig");
 pub const session = @import("session.zig");
 pub const transport = @import("transport.zig");
 
@@ -25,3 +26,4 @@ pub const SessionState = recovery.SessionState;
 pub const Identify = recovery.Identify;
 pub const DispatchQueue = dispatch.Queue;
 pub const DispatchEvent = dispatch.Event;
+pub const SendLimiter = send.SendLimiter;

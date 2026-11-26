@@ -7,6 +7,7 @@
 //! the actual reconnect.
 
 const std = @import("std");
+const protocol = @import("protocol");
 
 pub const CloseAction = enum {
     /// The session may be resumed with the stored ID and sequence.
@@ -302,6 +303,10 @@ pub const Identify = struct {
     /// Payload compression. Transport compression (`zlib-stream`) is separate;
     /// leave this false when transport compression is enabled.
     compress: bool = false,
+    /// The caller must explicitly confirm that privileged intents are enabled
+    /// in the Developer Portal. Without this, a privileged bit is a local error
+    /// rather than a server 4014 loop.
+    allow_privileged: bool = false,
 };
 
 pub const BuildError = error{
@@ -309,6 +314,8 @@ pub const BuildError = error{
     InvalidProperty,
     NoSpaceLeft,
     InvalidShard,
+    UnknownIntentBits,
+    PrivilegedIntentNotAcknowledged,
 };
 
 /// Writes the Identify payload into a caller-owned scratch buffer. The caller
@@ -318,6 +325,10 @@ pub fn writeIdentify(buffer: []u8, identify: Identify) BuildError![]const u8 {
     try validateProperty(identify.properties.os);
     try validateProperty(identify.properties.browser);
     try validateProperty(identify.properties.device);
+    try protocol.intents.validate(identify.intents);
+    if (protocol.intents.isPrivileged(identify.intents) and !identify.allow_privileged) {
+        return error.PrivilegedIntentNotAcknowledged;
+    }
 
     var shard_buffer: [48]u8 = undefined;
     const shard: []const u8 = if (identify.shard) |values| blk: {

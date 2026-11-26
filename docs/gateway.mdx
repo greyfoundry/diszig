@@ -167,7 +167,40 @@ the event is returned; they never wait for application callbacks.
 `.raw` with the original gateway envelope; EVENT-* packages add typed payloads.
 Typed slices borrow the per-callback arena.
 
+## Send operations and intents
+
+`diszig.intents` mirrors the documented bit table. `validate` rejects
+undocumented bits, and `isPrivileged` covers `GUILD_MEMBERS`,
+`GUILD_PRESENCES` and `MESSAGE_CONTENT`. `writeIdentify` refuses a privileged
+bit unless the caller sets `allow_privileged`, which is an explicit confirmation
+that the intent is enabled in the Developer Portal. A server rejection (close
+`4013`/`4014`) remains fatal in the recovery policy.
+
+`diszig.gateway.send` builds every documented send payload:
+
+- Identify and Resume (re-exported from `recovery.zig`) and Heartbeat.
+- Request Guild Members: exactly one of `query` or `user_ids`; query at most
+  100 bytes; limit at most 100 for a prefix and 1000 overall; at most 100 user
+  IDs; nonce at most 32 bytes and JSON-safe.
+- Request Soundboard Sounds: 1-100 guild IDs.
+- Request Channel Info: `status` and/or `voice_start_time`, no duplicates.
+- Update Voice State: `channel_id: null` disconnects.
+- Update Presence: status, `since`, `afk` and up to 10 activities with escaped
+  name/url/state/details text.
+
+Every builder writes into a caller-owned buffer. `Session.sendText` copies the
+payload, lets the framing mask the copy and then wipes it.
+
+`SendLimiter` enforces Discord's 120 events per connection per 60 seconds.
+Non-critical sends return `error.RateLimited` with `retryAfterMs`; heartbeat,
+Identify and Resume are critical and are counted but never blocked. A
+`RATE_LIMITED` dispatch is parsed by `send.parseRateLimited` into the offending
+opcode, retry delay and metadata (guild ID, nonce). It is deliberately a
+different type from an HTTP 429: only the named operation should be postponed,
+and there is no HTTP status or global flag.
+
 ## Not implemented yet
 
 Automatic reconnect orchestration, typed event payloads beyond READY/RESUMED,
-sharding and the client facade. None of those are claimed by this page.
+worker pools, sharding and the client facade. None of those are claimed by this
+page.
