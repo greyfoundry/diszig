@@ -51,6 +51,18 @@
       "live_verified": false
     },
     {
+      "id": "rest.structured-errors",
+      "kind": "rest-error",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/errors.zig", "packages/protocol/errors.zig", "src/root.zig"],
+      "tests": ["packages/rest/errors.zig", "tests/rest/errors.zig"],
+      "docs": ["docs/ownership.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/opcodes-and-status-codes.mdx#L117",
+      "live_verified": false
+    },
+    {
       "id": "protocol.error-context",
       "kind": "primitive",
       "status": "implemented",

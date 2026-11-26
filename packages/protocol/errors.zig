@@ -115,14 +115,24 @@ fn authorizationValueEnd(src: []const u8, i: usize) ?usize {
     return end;
 }
 
-fn tokenParameterEnd(src: []const u8, i: usize) ?usize {
+const secret_parameters = [_][]const u8{
+    "token=",
+    "access_token=",
+    "refresh_token=",
+    "session_id=",
+};
+
+fn secretParameterEnd(src: []const u8, i: usize) ?struct { name: []const u8, end: usize } {
     if (i == 0) return null;
     if (src[i - 1] != '?' and src[i - 1] != '&' and !std.ascii.isWhitespace(src[i - 1])) return null;
-    if (i + "token=".len > src.len) return null;
-    if (!std.ascii.eqlIgnoreCase(src[i..][0.."token=".len], "token=")) return null;
-    var end = i + "token=".len;
-    while (end < src.len and src[end] != '&' and !std.ascii.isWhitespace(src[end])) end += 1;
-    return end;
+    for (secret_parameters) |name| {
+        if (i + name.len > src.len) continue;
+        if (!std.ascii.eqlIgnoreCase(src[i..][0..name.len], name)) continue;
+        var end = i + name.len;
+        while (end < src.len and src[end] != '&' and !std.ascii.isWhitespace(src[end])) end += 1;
+        return .{ .name = name, .end = end };
+    }
+    return null;
 }
 
 fn webhookTokenEnd(src: []const u8, i: usize) ?usize {
@@ -164,10 +174,10 @@ fn redact(dst: []u8, src: []const u8) usize {
             i = end;
             continue;
         }
-        if (tokenParameterEnd(src, i)) |end| {
-            append(dst, &out, src[i..][0.."token=".len]);
+        if (secretParameterEnd(src, i)) |parameter| {
+            append(dst, &out, parameter.name);
             append(dst, &out, "[redacted]");
-            i = end;
+            i = parameter.end;
             continue;
         }
         if (webhookTokenEnd(src, i)) |end| {
@@ -204,6 +214,15 @@ test "token query parameter is redacted" {
     var ctx = Context.init(.validation);
     ctx.setDetail("/callback?state=ok&token=abcdefghijklmnop&x=1");
     try std.testing.expectEqualStrings("/callback?state=ok&token=[redacted]&x=1", ctx.detail());
+}
+
+test "OAuth and session query parameters are redacted" {
+    var ctx = Context.init(.validation);
+    ctx.setDetail("/callback?access_token=abc123&session_id=deadbeef&state=ok");
+    try std.testing.expectEqualStrings(
+        "/callback?access_token=[redacted]&session_id=[redacted]&state=ok",
+        ctx.detail(),
+    );
 }
 
 test "webhook token path is redacted" {

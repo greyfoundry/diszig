@@ -10,12 +10,22 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const rest = b.addModule("rest", .{
+        .root_source_file = b.path("packages/rest/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "protocol", .module = protocol },
+        },
+    });
+
     const diszig = b.addModule("diszig", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{
             .{ .name = "protocol", .module = protocol },
+            .{ .name = "rest", .module = rest },
         },
     });
 
@@ -48,6 +58,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_step.dependOn(&b.addRunArtifact(public_json_tests).step);
+
+    const public_rest_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/rest/errors.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_rest_tests).step);
 
     const package_check = b.addSystemCommand(&.{ "python", "tools/check_package.py" });
     const package_self_test = b.addSystemCommand(&.{ "python", "tools/check_package.py", "--self-test" });

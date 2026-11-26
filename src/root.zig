@@ -5,8 +5,10 @@
 
 const std = @import("std");
 const protocol_mod = @import("protocol");
+const rest_mod = @import("rest");
 
 pub const protocol = protocol_mod;
+pub const rest = rest_mod;
 pub const Snowflake = protocol.Snowflake;
 pub const Timestamp = protocol.Timestamp;
 pub const cdn = protocol.cdn;
