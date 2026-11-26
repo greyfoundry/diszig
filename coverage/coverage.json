@@ -229,6 +229,38 @@
       "docs": ["docs/architecture.mdx"],
       "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
       "live_verified": false
+    },
+    {
+      "id": "gateway.transport",
+      "kind": "gateway-transport",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/gateway/transport.zig",
+        "packages/gateway/root.zig",
+        "third_party/websocket/VENDOR.md",
+        "src/root.zig"
+      ],
+      "tests": ["packages/gateway/transport.zig", "tests/gateway/framing.zig"],
+      "docs": ["docs/gateway.mdx", "docs/status.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway.mdx#L105",
+      "live_verified": false
+    },
+    {
+      "id": "gateway.zlib-stream",
+      "kind": "gateway-compression",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/gateway/compression.zig",
+        "packages/gateway/zlib.zig"
+      ],
+      "tests": ["packages/gateway/compression.zig", "tests/gateway/framing.zig"],
+      "docs": ["docs/gateway.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway.mdx#L519",
+      "live_verified": false
     }
   ]
 }

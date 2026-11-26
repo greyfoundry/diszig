@@ -1,0 +1,95 @@
+---
+title: 'Gateway transport'
+---
+
+The Gateway transport is the WebSocket boundary only. It opens one connection,
+reassembles frames, applies transport compression and returns gateway payloads
+in order. It does not identify, heartbeat, resume, dispatch or shard yet; those
+are separate packages. Do not describe Diszig as having a Gateway client until
+they land.
+
+## Connecting
+
+`diszig.gateway.Connection.connect` takes an explicit `ws://` or `wss://` URL:
+
+```zig
+const url = try diszig.gateway.Url.parse("wss://gateway.discord.gg/?v=10&encoding=json");
+
+var connection = try diszig.gateway.Connection.connect(allocator, io, .{
+    .url = url,
+    .compression = .zlib_stream,
+    .max_message_bytes = 16 * 1024 * 1024,
+});
+defer connection.deinit();
+```
+
+The caller owns the query string, so the API version and encoding are explicit.
+`compress=zlib-stream` is added by the caller together with
+`Options.compression`. `ws` is accepted for local fixtures; production Gateway
+URLs are `wss`.
+
+`Options.ca_bundle` is optional. When it is null the vendored client scans the
+system trust store and verifies the host name; tests pass a local CA bundle.
+
+## Framing
+
+The client framing is vendored from the pinned
+[websocket.zig fork](https://tangled.org/zzstoatzz.io/websocket.zig); see
+`third_party/websocket/VENDOR.md` for the exact revision and the local
+modifications. Diszig does not implement a second frame parser.
+
+- Fragmented data frames are reassembled before `next` returns.
+- Control frames are limited to 125 bytes. Pings are answered transparently and
+  never surface to the caller. Pongs are ignored.
+- Two frames coalesced into one TCP read still yield two messages.
+- A close frame is returned as `Message{ .kind = .close }` with the received
+  code and reason.
+- A socket that closes mid-frame surfaces an error; `next` never returns a
+  partial payload.
+
+`next` returns `null` when the socket read timeout expires. That means "no
+payload yet", not "connection closed"; the session layer decides whether to
+keep polling or recover. `setReadTimeout` changes the timeout for the
+cancellation loop.
+
+## Transport compression
+
+`zlib-stream` is one zlib context per connection, shared by every payload.
+Discord terminates each payload with the four-byte `Z_SYNC_FLUSH` marker
+`00 00 ff ff`, and the next payload continues the same stream, so
+back-references can reach earlier payloads.
+
+Zig's `std.compress.flate.Decompress` cannot be paused between input chunks, so
+Diszig links zlib 1.3.2 (pinned in `build.zig.zon`) and uses its incremental
+inflate interface. This does not reimplement a codec.
+
+`Options.compression` is explicit:
+
+| Value | Behaviour |
+| --- | --- |
+| `.none` | No transport compression. |
+| `.zlib_stream` | Shared zlib context, bounded expansion. |
+| `.zstd_stream` | Documented by Discord, not implemented; returns `error.UnsupportedCompression`. |
+
+`max_message_bytes` bounds both the decompressed payload and the compressed
+bytes accumulated between two markers. A compressed expansion over the bound
+fails with `error.MessageTooLarge`, poisons the decoder and requires a new
+connection.
+
+## Bounds and ownership
+
+- `max_message_bytes` defaults to 16 MiB.
+- `read_buffer_bytes` must be less than or equal to `max_message_bytes`. The
+  client has a static read buffer, and a larger buffer would let an oversized
+  message bypass the message limit.
+- `Message.data` is borrowed and valid only until the next `next`, `close` or
+  `deinit` call.
+- `sendText` copies the payload into a private buffer, because the framing masks
+  outbound payloads in place. The copy is wiped after the write. Gateway send
+  payloads can contain the Identify token.
+
+## Not implemented yet
+
+Hello parsing, heartbeat scheduling and ACK liveness, Identify, Resume, close
+code classification, typed dispatch, backpressure, sharding and the client
+facade. None of those are claimed by this page.

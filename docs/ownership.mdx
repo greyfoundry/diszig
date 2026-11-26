@@ -2,7 +2,7 @@
 title: 'Ownership and concurrency'
 ---
 
-These are the binding contracts for Diszig implementation. Only the shared error context exists today; the client, REST and Gateway modules must follow these rules as they are built. The contracts are written before public signatures so allocator and lifetime mistakes are not frozen into the API.
+These are the binding contracts for Diszig implementation. The REST transport and the Gateway framing boundary exist today; the session, client and dispatcher must keep following these rules as they are built. The contracts are written before public signatures so allocator and lifetime mistakes are not frozen into the API.
 
 ## Allocators
 
@@ -53,4 +53,4 @@ Cancellation uses `std.Io` cancellation and explicit wake events. A handler cann
 
 ## Current evidence
 
-Compiled probes on Zig 0.17.1 verify borrowed-event copying, cleanup when the second allocation fails, and a blocked worker that is woken and joined within a bounded timeout. The full client and Gateway will add their own queue, cancellation and shutdown tests before any support claim.
+Compiled probes on Zig 0.17.1 verify borrowed-event copying, cleanup when the second allocation fails, and a blocked worker that is woken and joined within a bounded timeout. The Gateway transport has a local raw-socket fixture for coalesced frames, fragmentation with an interleaved ping, masked pong replies, a close frame with code and reason, a mid-frame disconnect, two compressed payloads and an expansion bomb. The session, dispatch queue and worker pool will add their own cancellation and shutdown tests before any support claim.

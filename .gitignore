@@ -3,6 +3,7 @@
 /.local/
 **/.zig-cache/
 **/zig-out/
+**/zig-pkg/
 **/node_modules/
 **/.turbo/
 **/.env

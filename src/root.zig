@@ -6,9 +6,11 @@
 const std = @import("std");
 const protocol_mod = @import("protocol");
 const rest_mod = @import("rest");
+const gateway_mod = @import("gateway");
 
 pub const protocol = protocol_mod;
 pub const rest = rest_mod;
+pub const gateway = gateway_mod;
 pub const Snowflake = protocol.Snowflake;
 pub const Timestamp = protocol.Timestamp;
 pub const ApiVersion = protocol.ApiVersion;
