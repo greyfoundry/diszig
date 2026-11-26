@@ -63,6 +63,18 @@
       "live_verified": false
     },
     {
+      "id": "rest.limiter",
+      "kind": "rest-scheduling",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": ["packages/rest/limiter.zig", "src/root.zig"],
+      "tests": ["packages/rest/limiter.zig", "tests/rest/limiter.zig"],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/rate-limits.mdx#L24",
+      "live_verified": false
+    },
+    {
       "id": "rest.transport",
       "kind": "rest-transport",
       "status": "implemented",
