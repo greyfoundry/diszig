@@ -36,6 +36,14 @@ pub fn main(init: std.process.Init) !void {
             return;
         };
         return error.ExpectedCrossOriginFailure;
+    } else if (std.mem.eql(u8, mode, "retry")) {
+        var response = try client.sendRetry(.GET, "/retry", .{}, .safe, .{
+            .max_attempts = 2,
+            .base_delay_ms = 10,
+            .max_delay_ms = 20,
+        });
+        defer response.deinit();
+        try stdout.interface.print("status={d} body={s}\n", .{ response.status, response.body });
     } else if (std.mem.eql(u8, mode, "empty")) {
         var response = try client.send(.GET, "/empty", .{});
         defer response.deinit();

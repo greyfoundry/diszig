@@ -7,6 +7,7 @@
 const std = @import("std");
 const transport = @import("transport.zig");
 const rest_errors = @import("errors.zig");
+const retry = @import("retry.zig");
 
 pub const Auth = transport.Auth;
 
@@ -99,6 +100,65 @@ pub const Client = struct {
 
     fn maxBody(self: *const Client, options: RequestOptions) usize {
         return options.max_response_bytes orelse self.max_response_bytes;
+    }
+
+    fn nowMs(self: *Client) i64 {
+        return @intCast(@divTrunc(std.Io.Timestamp.now(self.io, .awake).nanoseconds, std.time.ns_per_ms));
+    }
+
+    /// Runs a request under the bounded retry policy. Non-idempotent requests
+    /// are never replayed after a transport error; the caller gets
+    /// `error.AmbiguousWrite` instead.
+    pub fn sendRetry(
+        self: *Client,
+        method: std.http.Method,
+        path: []const u8,
+        options: RequestOptions,
+        idempotency: retry.Idempotency,
+        policy: retry.Policy,
+    ) !Response {
+        var state = retry.Retry.init(policy, self.nowMs());
+        while (true) {
+            var response = self.send(method, path, options) catch |err| {
+                const outcome = state.afterTransportError(
+                    idempotency,
+                    options.body != null,
+                    self.nowMs(),
+                );
+                switch (outcome) {
+                    .retry_after_ms => |delay| {
+                        try std.Io.sleep(self.io, .fromMilliseconds(@intCast(delay)), .awake);
+                        continue;
+                    },
+                    .ambiguous => return error.AmbiguousWrite,
+                    .canceled => return error.Canceled,
+                    else => return err,
+                }
+            };
+
+            const outcome = state.afterResponse(
+                response.status,
+                idempotency,
+                null,
+                self.nowMs(),
+            );
+            switch (outcome) {
+                .success => return response,
+                .retry_after_ms => |delay| {
+                    response.deinit();
+                    try std.Io.sleep(self.io, .fromMilliseconds(@intCast(delay)), .awake);
+                },
+                .ambiguous => {
+                    response.deinit();
+                    return error.AmbiguousWrite;
+                },
+                .canceled => {
+                    response.deinit();
+                    return error.Canceled;
+                },
+                .fail => return response,
+            }
+        }
     }
 
     pub fn send(

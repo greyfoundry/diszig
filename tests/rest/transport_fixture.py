@@ -39,6 +39,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(302, location=f"http://127.0.0.1:{records['p2']}/leak")
         elif self.path == "/empty":
             self._send(204)
+        elif self.path == "/retry":
+            records.setdefault("retry", 0)
+            records["retry"] += 1
+            if records["retry"] == 1:
+                self._send(500, b"try again")
+            else:
+                self._send(200, b"ok")
         elif self.path == "/leak":
             self._send(200, b"leaked")
         else:
@@ -94,6 +101,13 @@ def main():
         result = run("empty", p1)
         if result.returncode != 0 or "status=204 len=0" not in result.stdout:
             failures.append("empty")
+
+        records["retry"] = 0
+        result = run("retry", p1)
+        if result.returncode != 0 or "status=200 body=ok" not in result.stdout:
+            failures.append("retry")
+        if records["retry"] != 2:
+            failures.append("retry-count")
     finally:
         for server, thread in ((server1, t1), (server2, t2)):
             server.shutdown()
