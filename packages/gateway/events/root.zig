@@ -12,6 +12,7 @@ const std = @import("std");
 const protocol = @import("protocol");
 
 pub const channels = @import("channels.zig");
+pub const commands = @import("commands.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -34,6 +35,7 @@ pub const Event = union(enum) {
     channel_delete: channels.Channel,
     channel_info: channels.ChannelInfo,
     channel_pins_update: channels.ChannelPinsUpdate,
+    application_command_permissions_update: commands.GuildApplicationCommandPermissions,
     raw: Raw,
 };
 
@@ -56,6 +58,13 @@ pub fn decode(
                 .delete => |channel| .{ .channel_delete = channel },
                 .info => |info| .{ .channel_info = info },
                 .pins_update => |pins| .{ .channel_pins_update = pins },
+            };
+        }
+        if (try commands.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .permissions_update => |permissions| .{
+                    .application_command_permissions_update = permissions,
+                },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };

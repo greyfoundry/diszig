@@ -163,10 +163,11 @@ sequence) so the caller can push a dispatch without re-parsing. Control frames
 (heartbeat ACK/request, close, reconnect, invalid session) are handled before
 the event is returned; they never wait for application callbacks.
 
-`diszig.gateway.events.decode` types READY, RESUMED and the first channel batch:
-CHANNEL_CREATE, CHANNEL_UPDATE, CHANNEL_DELETE, CHANNEL_INFO and
-CHANNEL_PINS_UPDATE. Every other event is `.raw` with the original gateway
-envelope; EVENT-* packages add typed payloads.
+`diszig.gateway.events.decode` types READY, RESUMED, the first channel batch
+(CHANNEL_CREATE, CHANNEL_UPDATE, CHANNEL_DELETE, CHANNEL_INFO and
+CHANNEL_PINS_UPDATE) and APPLICATION_COMMAND_PERMISSIONS_UPDATE. Every other
+event is `.raw` with the original gateway envelope; EVENT-* packages add typed
+payloads.
 
 Typed channel payloads use `Presence` for nullable fields: an omitted update
 field is absent and does not clear it, while an explicit null is a clear.
