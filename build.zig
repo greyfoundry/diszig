@@ -193,6 +193,12 @@ pub fn build(b: *std.Build) void {
     });
     probe_step.dependOn(&b.addInstallArtifact(probe, .{}).step);
 
+    const cross_step = b.step("cross-check", "Compile protocol and REST tests without executing");
+    const cross_protocol = b.addTest(.{ .root_module = protocol });
+    const cross_rest = b.addTest(.{ .root_module = rest });
+    cross_step.dependOn(&cross_protocol.step);
+    cross_step.dependOn(&cross_rest.step);
+
     const docs_step = b.step("docs", "Validate the Mintlify handbook");
     const docs = b.addSystemCommand(&.{ "mint", "validate" });
     docs.setCwd(b.path("docs"));

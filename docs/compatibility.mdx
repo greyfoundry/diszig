@@ -4,4 +4,16 @@ title: 'Compatibility'
 
 Zig 0.17.1 is the initial research baseline. The actual compiler support range will be established by tested builds and examples. Linux, Windows and macOS on x86-64 and ARM64 are targets, not verified support claims. A focused standard-library probe and the root package's unit tests currently pass in Debug and ReleaseSafe on Windows 11 x86-64; that is build evidence for one host, not SDK platform support.
 
+## Evidence matrix
+
+| Target | Evidence |
+| --- | --- |
+| Windows 11 x86-64 | Native Debug/ReleaseSafe tests, package fetch, HTTP transport fixture |
+| Ubuntu x86-64 | Hosted CI tests and package/transport gates |
+| Windows x86-64 (CI) | Hosted CI tests and package/transport gates |
+| Linux x86-64/aarch64, macOS x86-64/aarch64, Windows aarch64 | Compile-only `cross-check` of protocol and REST modules |
+| Live Discord | Not tested |
+
+Compile-only targets are not runtime support claims. No macOS or ARM64 native run has been made.
+
 Diszig targets Discord's documented v10 API initially. Official protocol documentation takes priority over the preview OpenAPI schema. Diszig and Zig have independent version numbers; Zig 1.0 migration is a design goal, not a promise that current code works on an unreleased compiler.

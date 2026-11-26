@@ -61,3 +61,6 @@ jobs:
           zig fmt --check $(git ls-files '*.zig')
           zig build check
           zig build test -Doptimize=ReleaseSafe
+          for target in x86_64-linux-gnu aarch64-linux-gnu x86_64-macos aarch64-macos aarch64-windows-gnu; do
+            zig build cross-check "-Dtarget=$target" -Doptimize=ReleaseSafe
+          done
