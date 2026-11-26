@@ -6,4 +6,6 @@ Two modes are planned for the first functional client release. Native sharding r
 
 Both modes use the same Gateway implementation. The supervisor coordinates startup budgets, shard ownership and shared REST limits across workers. Failed workers must not start competing sessions, and unknown ownership or coordinator loss must be handled conservatively. Local hybrid mode is intended to require no Redis or external coordinator.
 
+Workers receive credentials over an inherited stdin pipe as a bounded frame, never through argv or logs. A worker treats stdin EOF as coordinator loss and stops its governed work. Replacement waits for confirmed process exit; an unknown owner is not started alongside a possibly live worker.
+
 Multi-host coordination is a separate future integration. No exactly-once event delivery or distributed failover guarantee is made. Configuration and working examples will be documented after implementation and verification.
