@@ -5,6 +5,7 @@
 //! integer enums. Response arrays borrow the JSON parse arena.
 
 const std = @import("std");
+const permissions = @import("../permissions.zig");
 
 pub const ActionTypes = []const u8;
 pub const AvailableLocalesEnum = []const u8;
@@ -131,6 +132,165 @@ pub const KeywordTriggerMetadataResponse = struct {
 };
 
 pub const MLSpamTriggerMetadata = struct {};
+pub const MLSpamTriggerMetadataResponse = struct {};
+pub const TypingIndicatorResponse = struct {};
+
+pub const MentionSpamTriggerMetadata = struct {
+    mention_total_limit: ?u32 = null,
+    mention_raid_protection_enabled: ?bool = null,
+};
+
+pub const MentionSpamTriggerMetadataResponse = struct {
+    mention_total_limit: u32,
+    mention_raid_protection_enabled: bool,
+};
+
+pub const MetadataItemTypes = enum(i32) {
+    integer_less_than_equal = 1,
+    integer_greater_than_equal = 2,
+    integer_equal = 3,
+    integer_not_equal = 4,
+    datetime_less_than_equal = 5,
+    datetime_greater_than_equal = 6,
+    boolean_equal = 7,
+    boolean_not_equal = 8,
+};
+
+pub const NameplatePalette = enum {
+    crimson,
+    berry,
+    sky,
+    teal,
+    forest,
+    bubble_gum,
+    violet,
+    cobalt,
+    clover,
+    lemon,
+    white,
+    black,
+
+    pub fn wireName(self: NameplatePalette) []const u8 {
+        return @tagName(self);
+    }
+};
+
+pub const PermissionsResponse = struct {
+    permissions: []const u8,
+
+    pub fn value(self: PermissionsResponse) !permissions.Permissions {
+        return permissions.Permissions.parseDecimal(self.permissions);
+    }
+};
+
+pub const PurchaseType = enum(i32) {
+    guild_product = 0,
+};
+
+pub const RecurrenceRuleFrequencies = enum(i32) {
+    yearly = 0,
+    monthly = 1,
+    weekly = 2,
+    daily = 3,
+};
+
+pub const RecurrenceRuleMonths = enum(i32) {
+    january = 1,
+    february = 2,
+    march = 3,
+    april = 4,
+    may = 5,
+    june = 6,
+    july = 7,
+    august = 8,
+    september = 9,
+    october = 10,
+    november = 11,
+    december = 12,
+};
+
+pub const RecurrenceRuleWeekdays = enum(i32) {
+    monday = 0,
+    tuesday = 1,
+    wednesday = 2,
+    thursday = 3,
+    friday = 4,
+    saturday = 5,
+    sunday = 6,
+};
+
+pub const SearchIndexNotReadyResponse = struct {
+    message: []const u8,
+    code: i32,
+    documents_indexed: i32,
+    retry_after: i32,
+};
+
+pub const SnowflakeType = @import("../snowflake.zig").Snowflake;
+pub const UInt32Type = u32;
+
+pub const SortingMode = enum {
+    relevance,
+    timestamp,
+
+    pub fn wireName(self: SortingMode) []const u8 {
+        return @tagName(self);
+    }
+};
+
+pub const SortingOrder = enum {
+    asc,
+    desc,
+
+    pub fn wireName(self: SortingOrder) []const u8 {
+        return @tagName(self);
+    }
+};
+
+pub const UpdateDMRequestPartial = struct {
+    name: ?[]const u8 = null,
+};
+
+pub const UpdateGroupDMRequestPartial = struct {
+    name: ?[]const u8 = null,
+    icon: ?[]const u8 = null,
+};
+
+pub const VanityURLErrorResponse = struct {
+    message: []const u8,
+    code: i32,
+};
+
+pub const VerificationLevels = enum(i32) {
+    none = 0,
+    low = 1,
+    medium = 2,
+    high = 3,
+    very_high = 4,
+};
+
+pub const VideoQualityModes = enum(i32) {
+    auto = 1,
+    full = 2,
+};
+
+pub const WebhookTypes = enum(i32) {
+    guild_incoming = 1,
+    channel_follower = 2,
+    application_incoming = 3,
+};
+
+pub const WidgetImageStyles = enum {
+    shield,
+    banner1,
+    banner2,
+    banner3,
+    banner4,
+
+    pub fn wireName(self: WidgetImageStyles) []const u8 {
+        return @tagName(self);
+    }
+};
 
 test "shared enums use documented numeric values" {
     try std.testing.expectEqual(@as(i32, 60), @backingInt(AfkTimeouts.one_minute));
@@ -153,6 +313,36 @@ test "shared response structures decode representative JSON" {
     var gateway_parsed = try std.json.parseFromSlice(GatewayResponse, std.testing.allocator, gateway, .{});
     defer gateway_parsed.deinit();
     try std.testing.expectEqualStrings("wss://gateway.discord.gg", gateway_parsed.value.url);
+}
+
+test "mention spam and search-index responses decode" {
+    const mention =
+        \\{"mention_total_limit":5,"mention_raid_protection_enabled":true}
+    ;
+    var parsed_mention = try std.json.parseFromSlice(MentionSpamTriggerMetadataResponse, std.testing.allocator, mention, .{});
+    defer parsed_mention.deinit();
+    try std.testing.expectEqual(@as(u32, 5), parsed_mention.value.mention_total_limit);
+    try std.testing.expect(parsed_mention.value.mention_raid_protection_enabled);
+
+    const search =
+        \\{"message":"Index not ready","code":110000,"documents_indexed":10,"retry_after":500}
+    ;
+    var parsed_search = try std.json.parseFromSlice(SearchIndexNotReadyResponse, std.testing.allocator, search, .{});
+    defer parsed_search.deinit();
+    try std.testing.expectEqual(@as(i32, 110000), parsed_search.value.code);
+}
+
+test "permissions response parses its decimal bitfield" {
+    var parsed = try std.json.parseFromSlice(PermissionsResponse, std.testing.allocator, "{\"permissions\":\"8\"}", .{});
+    defer parsed.deinit();
+    const value = try parsed.value.value();
+    try std.testing.expect(value.has(permissions.ADMINISTRATOR));
+}
+
+test "SnowflakeType decodes a JSON string only" {
+    var parsed = try std.json.parseFromSlice(SnowflakeType, std.testing.allocator, "\"18446744073709551615\"", .{});
+    defer parsed.deinit();
+    try std.testing.expectEqual(std.math.maxInt(u64), parsed.value.toU64());
 }
 
 test "keyword metadata arrays decode with ownership by the parse arena" {
