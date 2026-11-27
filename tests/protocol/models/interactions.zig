@@ -9,6 +9,11 @@ test "every listed schema is exported" {
     _ = interactions.InteractionCallbackTypes;
     _ = interactions.InteractionContextType;
     _ = interactions.InteractionTypes;
+    _ = interactions.InteractionResponse;
+    _ = interactions.LaunchActivityInteractionCallbackRequest;
+    _ = interactions.LaunchActivityInteractionCallbackResponse;
+    _ = interactions.PongInteractionCallbackRequest;
+    _ = interactions.SocialLayerSKUPurchaseEligibilityCallbackData;
 }
 
 test "enum values match the pinned schema" {
@@ -58,5 +63,39 @@ test "allocation failure while parsing callback id is leak free" {
         std.testing.allocator,
         parseResponse,
         .{"{\"id\":\"abc\"}"},
+    );
+}
+
+test "callback type gates and sku eligibility data" {
+    try (interactions.LaunchActivityInteractionCallbackRequest{ .type = .launch_activity }).validate();
+    try std.testing.expectError(
+        error.InvalidCallbackType,
+        (interactions.PongInteractionCallbackRequest{ .type = .launch_activity }).validate(),
+    );
+    try (interactions.SocialLayerSKUPurchaseEligibilityCallbackData{ .eligible = true }).validate();
+    const long_text: [256]u8 = @splat('x');
+    try std.testing.expectError(
+        error.IneligibleReasonTooLong,
+        (interactions.SocialLayerSKUPurchaseEligibilityCallbackData{
+            .eligible = false,
+            .ineligible_reason_description = &long_text,
+        }).validate(),
+    );
+}
+
+fn parseEligibility(allocator: std.mem.Allocator, payload: []const u8) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const value = try std.json.parseFromSliceLeaky(interactions.SocialLayerSKUPurchaseEligibilityCallbackData, arena.allocator(), payload, .{
+        .ignore_unknown_fields = true,
+    });
+    try value.validate();
+}
+
+test "allocation failure while parsing eligibility is leak free" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseEligibility,
+        .{"{\"eligible\":false,\"ineligible_reason_description\":\"already owned\"}"},
     );
 }
