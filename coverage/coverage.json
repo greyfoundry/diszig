@@ -878,6 +878,25 @@
       "status": "planned",
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/voice-connections.mdx",
       "reason": "Voice gateway v8, UDP/RTP framing and DAVE (MLS/E2EE) are not implemented. Discord states E2EE is the only supported call mode for audio from 2026-03-01, so no non-DAVE fallback is shipped."
+    },
+    {
+      "id": "protocol.models-messages-02",
+      "kind": "model-batch",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/protocol/models/messages.zig",
+        "packages/protocol/models/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/protocol/models/messages.zig",
+        "tests/protocol/models/messages.zig"
+      ],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
+      "live_verified": false
     }
   ]
 }

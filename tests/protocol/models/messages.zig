@@ -29,6 +29,9 @@ test "every listed schema is exported" {
     _ = messages.RichEmbedImage;
     _ = messages.RichEmbedProvider;
     _ = messages.RichEmbedThumbnail;
+    _ = messages.RichEmbedVideo;
+    _ = messages.SearchableEmbedType;
+    _ = messages.WebhookSlackEmbedField;
 }
 
 test "enum values match the pinned schema" {
@@ -80,6 +83,26 @@ test "embed responses parse" {
     , .{ .ignore_unknown_fields = true });
     defer counts.deinit();
     try std.testing.expectEqual(@as(i32, 1), counts.value.burst);
+}
+
+test "video embed, searchable type and slack field validate" {
+    try (messages.RichEmbedVideo{
+        .url = "https://x/v.mp4",
+        .placeholder = "p",
+        .placeholder_version = 2_147_483_647,
+        .description = "d",
+    }).validate();
+    const long_placeholder: [65]u8 = @splat('p');
+    try std.testing.expectError(
+        error.PlaceholderTooLong,
+        (messages.RichEmbedVideo{ .placeholder = &long_placeholder }).validate(),
+    );
+
+    try std.testing.expectEqual(messages.SearchableEmbedType.article, messages.SearchableEmbedType.parseWire("article").?);
+    try std.testing.expectEqual(@as(?messages.SearchableEmbedType, null), messages.SearchableEmbedType.parseWire("Article"));
+
+    try (messages.WebhookSlackEmbedField{ .name = "n", .value = "v", .@"inline" = false }).validate();
+    try std.testing.expectEqual(@as(usize, 152_133), messages.WebhookSlackEmbedField.max_text_len);
 }
 
 test "unknown inbound message enum is retained" {

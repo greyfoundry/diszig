@@ -224,6 +224,55 @@ pub const RichEmbedProvider = struct {
     }
 };
 
+pub const RichEmbedVideo = struct {
+    url: ?[]const u8 = null,
+    width: ?i64 = null,
+    height: ?i64 = null,
+    placeholder: ?[]const u8 = null,
+    placeholder_version: ?i64 = null,
+    is_animated: ?bool = null,
+    description: ?[]const u8 = null,
+
+    pub fn validate(self: RichEmbedVideo) Error!void {
+        try validateImage(self.url, self.placeholder, self.placeholder_version, self.description);
+    }
+};
+
+/// Wire values for searchable embeds; exact lowercase strings.
+pub const SearchableEmbedType = enum {
+    image,
+    video,
+    gif,
+    sound,
+    article,
+
+    pub fn parseWire(text: []const u8) ?SearchableEmbedType {
+        inline for (@typeInfo(SearchableEmbedType).@"enum".field_values) |enum_value| {
+            const tag: SearchableEmbedType = @fromBackingInt(@intCast(enum_value));
+            if (std.mem.eql(u8, @tagName(tag), text)) return tag;
+        }
+        return null;
+    }
+};
+
+pub const InboundSearchableEmbedType = json.InboundStringEnum(SearchableEmbedType);
+
+/// Slack-compatible webhook embed field. The pinned schema allows an unusually
+/// large 152133-character name and value; the bound is enforced rather than
+/// truncated.
+pub const WebhookSlackEmbedField = struct {
+    name: ?[]const u8 = null,
+    value: ?[]const u8 = null,
+    @"inline": ?bool = null,
+
+    pub const max_text_len = 152_133;
+
+    pub fn validate(self: WebhookSlackEmbedField) Error!void {
+        try optionalText(self.name, max_text_len, error.TextTooLong);
+        try optionalText(self.value, max_text_len, error.TextTooLong);
+    }
+};
+
 pub const RichEmbedThumbnail = struct {
     url: ?[]const u8 = null,
     width: ?i64 = null,
@@ -284,6 +333,39 @@ test "rich embed field and image validation" {
         error.PlaceholderTooLong,
         (RichEmbedThumbnail{ .placeholder = &long_placeholder }).validate(),
     );
+}
+
+test "rich embed video and slack field validation" {
+    try (RichEmbedVideo{
+        .url = "https://x/v.mp4",
+        .width = 640,
+        .height = 360,
+        .is_animated = true,
+        .description = "clip",
+    }).validate();
+    try std.testing.expectError(
+        error.InvalidPlaceholderVersion,
+        (RichEmbedVideo{ .placeholder_version = 2_147_483_648 }).validate(),
+    );
+
+    try (WebhookSlackEmbedField{ .name = "n", .value = "v", .@"inline" = true }).validate();
+    const long_name: [152_133]u8 = @splat('n');
+    try (WebhookSlackEmbedField{ .name = &long_name }).validate();
+    const long_value: [152_134]u8 = @splat('v');
+    try std.testing.expectError(
+        error.TextTooLong,
+        (WebhookSlackEmbedField{ .value = &long_value }).validate(),
+    );
+}
+
+test "searchable embed types use exact wire strings" {
+    try std.testing.expectEqualStrings("image", @tagName(SearchableEmbedType.image));
+    try std.testing.expectEqualStrings("gif", @tagName(SearchableEmbedType.gif));
+    try std.testing.expectEqual(@as(?SearchableEmbedType, null), SearchableEmbedType.parseWire("future"));
+
+    var parsed = try std.json.parseFromSlice(InboundSearchableEmbedType, std.testing.allocator, "\"video\"", .{});
+    defer parsed.deinit();
+    try std.testing.expectEqual(@as(?SearchableEmbedType, .video), parsed.value.known());
 }
 
 test "unknown inbound message enums are retained" {
