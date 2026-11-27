@@ -7,14 +7,15 @@
 //!
 //! Why there is no partial voice path:
 //!
-//! - Discord documents that E2EE (the DAVE protocol) is the only supported
-//!   call mode for all audio from 2026-03-01. A non-DAVE voice client would be
-//!   rejected or unusable, so sending audio without DAVE would be a false
-//!   claim rather than a useful fallback.
+//! - Discord discontinued legacy non-DAVE voice connections; ordinary calls
+//!   require DAVE end-to-end encryption (stage channels are exempt). Voice
+//!   itself is supported, not deprecated.
+//! - The official libdave C API is the DAVE integration path. `dave.zig`
+//!   binds a small ABI subset and the optional `voice-probe` step proves it
+//!   links and creates an MLS key package; no voice transport exists yet.
 //! - Voice gateway versions below 4 are rejected; version 8 is recommended.
-//! - DAVE needs the MLS group state machine and the documented voice opcodes,
-//!   not just UDP framing. The official libdave library and an Opus codec would
-//!   have to be pinned by content hash and checked per target ABI.
+//! - Opus and a shipping libdave integration still need packaging, recovery
+//!   tests and per-target verification before voice can be advertised.
 //!
 //! A future implementation must add those dependencies with provenance,
 //! licence, transitive and ABI review. Until then every entry point reports
@@ -32,9 +33,11 @@ pub const Status = enum {
 pub const status: Status = .unavailable;
 
 pub const ReasonCode = enum {
-    /// DAVE is the only documented call mode from 2026-03-01.
+    /// Legacy non-DAVE connections were discontinued; ordinary calls now
+    /// require DAVE. Stage channels are exempt.
     dave_required,
-    /// Native libdave/Opus artifacts are not pinned or ABI-reviewed.
+    /// Official libdave artifacts are pinned, but only the optional ABI probe
+    /// links them; shipping Opus/voice integration is not wired yet.
     native_dependencies_not_pinned,
     /// No voice WebSocket, UDP or media transport is implemented.
     transport_not_implemented,
@@ -45,14 +48,17 @@ pub const Reason = struct {
     detail: []const u8,
 };
 
+/// Pinned official libdave release used by the optional ABI probe.
+pub const libdave_release = "v1.3.0/cpp";
+
 pub const reasons = [_]Reason{
     .{
         .code = .dave_required,
-        .detail = "Discord documents E2EE/DAVE as the only supported call mode for all audio from 2026-03-01; a non-DAVE path would not be a usable fallback.",
+        .detail = "Discord discontinued legacy non-DAVE voice connections; ordinary calls require DAVE end-to-end encryption, while stage channels are exempt. Discord voice itself is supported and not deprecated.",
     },
     .{
         .code = .native_dependencies_not_pinned,
-        .detail = "libdave and an Opus codec need content-hash pins, licence review, transitive review and per-target ABI checks before linking.",
+        .detail = "Official libdave v1.3.0 artifacts are pinned by SHA-256, but only the optional voice-probe step links them; Opus and a shipping integration are not wired into the default build.",
     },
     .{
         .code = .transport_not_implemented,
@@ -90,6 +96,7 @@ test "voice is explicitly unavailable with reasons" {
     try std.testing.expect(reasons.len >= 3);
     try std.testing.expectEqual(@as(u8, 8), documented_gateway_version);
     try std.testing.expectEqualStrings("aead_xchacha20_poly1305_rtpsize", encryption_modes[0]);
+    try std.testing.expectEqualStrings("v1.3.0/cpp", libdave_release);
 }
 
 test "reason codes are unique and documented" {

@@ -23,6 +23,7 @@
         "packages",
         "examples",
         "third_party",
+        "tools/fetch_libdave.py",
         "LICENSE",
         "NOTICE",
         "THIRD_PARTY_NOTICES.md",

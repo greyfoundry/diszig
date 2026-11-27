@@ -41,3 +41,6 @@
 /.cursor/*
 !/.cursor/rules/
 !/.cursor/rules/**
+
+# Downloaded official libdave release artifacts (pinned; see tools/fetch_libdave.py).
+/third_party/libdave/

@@ -7,7 +7,7 @@
 
 Diszig is a native Discord SDK for Zig. We're building the kind of library Zig developers should be able to reach for when they want to write a Discord bot: a client that handles the connection, typed events, builders for the things you send to Discord, and direct access to the API when you need it.
 
-> Early implementation. A Zig build, protocol module, standalone REST transport and Gateway transport/session control exist (Snowflake, ISO8601 timestamps, CDN identity, error context, tolerant JSON helpers, REST transport, multipart uploads, WebSocket framing, bounded zlib-stream decompression, Hello parsing, jittered heartbeat/ACK liveness, Identify/Resume payloads, close classification, bounded recovery policy, a fixed-capacity dispatch queue with raw fallback, validated intents with privileged acknowledgement, all documented send builders, a 120-events-per-60-seconds send limiter, the first typed channel, guild, member and message event batches, application command permissions, integrations, interaction envelopes, invites, message/embed builders and the users, guilds, applications, channels, commands, components, interactions, messages, monetization, resources, voice-control and social model batches, plus documented OAuth2 request builders). REST endpoints, automatic Gateway reconnect orchestration, typed event payloads beyond the current batches, sharding and the client facade are not implemented. Optional voice is explicitly unavailable and links no native dependency; see docs/voice.mdx. There is no installable release or supported public client API yet. The features below describe the direction of the project.
+> Early implementation. A Zig build, protocol module, standalone REST transport and Gateway transport/session control exist (Snowflake, ISO8601 timestamps, CDN identity, error context, tolerant JSON helpers, REST transport, multipart uploads, WebSocket framing, bounded zlib-stream decompression, Hello parsing, jittered heartbeat/ACK liveness, Identify/Resume payloads, close classification, bounded recovery policy, a fixed-capacity dispatch queue with raw fallback, validated intents with privileged acknowledgement, all documented send builders, a 120-events-per-60-seconds send limiter, the first typed channel, guild, member and message event batches, application command permissions, integrations, interaction envelopes, invites, message/embed builders and the users, guilds, applications, channels, commands, components, interactions, messages, monetization, resources, voice-control and social model batches, plus documented OAuth2 request builders). REST endpoints, automatic Gateway reconnect orchestration, typed event payloads beyond the current batches, sharding and the client facade are not implemented. Voice is not implemented yet: the optional package reports unavailable and links nothing by default, while pinned official libdave v1.3.0 artifacts and an optional C-ABI probe exist; see docs/voice.mdx. There is no installable release or supported public client API yet. The features below describe the direction of the project.
 
 ## Why Diszig?
 
@@ -69,6 +69,7 @@ Please report vulnerabilities privately using the process in [SECURITY.md](SECUR
 ## License
 
 [Apache-2.0](LICENSE). Diszig is an independent Greyfoundry project and is not affiliated with or endorsed by Discord.
+
 
 
 

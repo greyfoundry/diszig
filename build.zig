@@ -3,6 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const libdave_dir = b.option(
+        []const u8,
+        "libdave-dir",
+        "Path to an extracted official libdave release (include/, lib/, bin/) for the optional voice-probe step",
+    );
 
     const protocol = b.addModule("protocol", .{
         .root_source_file = b.path("packages/protocol/root.zig"),
@@ -57,6 +62,65 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // Optional libdave ABI probe. Nothing here runs unless -Dlibdave-dir is set;
+    // default builds remain free of native voice dependencies.
+    const voice_probe_step = b.step("voice-probe", "Build and run the optional libdave ABI probe");
+    if (libdave_dir) |dir| {
+        const dave_module = b.createModule(.{
+            .root_source_file = b.path("packages/voice/dave.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        const include_dir = b.pathJoin(&.{ dir, "include" });
+        const translate = b.addTranslateC(.{
+            .root_source_file = lazyPath(b, b.pathJoin(&.{ include_dir, "dave", "dave.h" })),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        translate.addIncludePath(lazyPath(b, include_dir));
+        const dave_c = translate.createModule();
+        dave_module.addImport("dave_c", dave_c);
+
+        dave_module.addLibraryPath(lazyPath(b, b.pathJoin(&.{ dir, "lib" })));
+        if (target.result.os.tag == .windows) {
+            dave_module.linkSystemLibrary("libdave", .{});
+        } else {
+            dave_module.linkSystemLibrary("dave", .{});
+        }
+
+        const probe = b.addExecutable(.{
+            .name = "dave_probe",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("tests/voice/dave_probe.zig"),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{
+                    .{ .name = "voice_dave", .module = dave_module },
+                },
+            }),
+        });
+        const install_probe = b.addInstallArtifact(probe, .{});
+        voice_probe_step.dependOn(&install_probe.step);
+
+        const library_dir = b.pathJoin(&.{ dir, "bin" });
+        const run = b.addRunArtifact(probe);
+        switch (target.result.os.tag) {
+            .windows => run.setEnvironmentVariable("PATH", library_dir),
+            .macos => run.setEnvironmentVariable("DYLD_LIBRARY_PATH", library_dir),
+            else => run.setEnvironmentVariable("LD_LIBRARY_PATH", library_dir),
+        }
+        voice_probe_step.dependOn(&run.step);
+    } else {
+        const fail = b.addSystemCommand(&.{
+            "python",
+            "-c",
+            "import sys; print('voice-probe requires -Dlibdave-dir=<extracted official libdave release>'); sys.exit(2)",
+        });
+        voice_probe_step.dependOn(&fail.step);
+    }
 
     const zlib = addZlib(b, target, optimize);
     websocket.linkLibrary(zlib.lib);
@@ -663,6 +727,10 @@ pub fn build(b: *std.Build) void {
     const docs = b.addSystemCommand(&.{ "mint", "validate" });
     docs.setCwd(b.path("docs"));
     docs_step.dependOn(&docs.step);
+}
+
+fn lazyPath(b: *std.Build, text: []const u8) std.Build.LazyPath {
+    return if (std.fs.path.isAbsolute(text)) .{ .cwd_relative = text } else b.path(text);
 }
 
 /// Build the pinned zlib sources once and link them into the modules that need

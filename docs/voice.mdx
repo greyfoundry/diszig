@@ -1,30 +1,89 @@
 ---
-title: Voice (optional, unavailable)
-description: Current voice status, the DAVE requirement and what a future implementation needs
+title: Voice (optional, in progress)
+description: Current voice status, DAVE requirements and the libdave integration plan
 ---
 
-Voice is **not implemented**. `diszig.voice` is an explicit capability report,
-not a transport. `isAvailable()` is false on every target, `require()` returns
-`error.UnsupportedVoice`, and the package links no WebSocket, UDP, Opus or
-libdave code. Basic bots, REST, Gateway and message builders never depend on it.
+Voice is **not implemented yet**. Discord voice itself is fully supported; what
+Discord discontinued was the **legacy non-DAVE connection**. Ordinary calls now
+require DAVE end-to-end encryption, with enforcement from 2026-03-02. Stage
+channels are exempt from the E2EE requirement.
+
+`diszig.voice` is currently an explicit capability report: `isAvailable()` is
+false, `require()` returns `error.UnsupportedVoice`, and the default build links
+no WebSocket, UDP, Opus or libdave code. This is a current implementation gap,
+not a platform limitation.
+
+## What exists today
+
+- **Pinned official libdave**: v1.3.0 (`v1.3.0/cpp`), MIT, with Discord's own
+  shared-library release assets for Windows x64, Linux x64/ARM64 and macOS
+  x64/ARM64. Each asset is pinned by SHA-256 in `tools/fetch_libdave.py`.
+- **C ABI bindings**: `packages/voice/dave.zig` binds a small, real subset of
+  the C API (max protocol version, session create/destroy, group init, protocol
+  version, marshalled MLS key package).
+- **Optional ABI probe**: `zig build voice-probe -Dlibdave-dir=...` links the
+  official library, creates a session, initializes an MLS group, obtains a key
+  package and destroys the session. It is excluded from the default build and
+  `zig build check`.
+- On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
+  reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
+  across runs). That proves ABI feasibility; it is not a voice connection and
+  not a support claim.
+
+```bash
+python tools/fetch_libdave.py
+zig build voice-probe -Dlibdave-dir=third_party/libdave/v1.3.0/windows-x64
+```
+
+### Pinned assets
+
+| Platform | Asset | SHA-256 |
+| --- | --- | --- |
+| Windows x64 | `libdave-Windows-X64-boringssl.zip` | `82993c4a9e5836f1dca01b4f7afeba72454321034dc41fda74bc239f620be6a2` |
+| Linux x64 | `libdave-Linux-X64-boringssl.zip` | `096e2b4cb64f4c9a5551b954ff717a89db7c5fe94e901860c339dd98d6f2c15d` |
+| Linux ARM64 | `libdave-Linux-ARM64-boringssl.zip` | `024bb556da335c884471256bcb30e4871e19b0a63aaaf9eec9898f83d8e5f81c` |
+| macOS x64 | `libdave-macOS-X64-boringssl.zip` | `041140b9fe4059e777d512219f796d00c8a3e38e98eb14cd49c9c5804b64367a` |
+| macOS ARM64 | `libdave-macOS-ARM64-boringssl.zip` | `111e46c61f2fa7ef23c7a2f7840330e59bcdb75e77728d2244536a031e601e02` |
+
+Windows ARM64 has no official libdave asset and is not claimed. The archive
+bundles libdave (MIT), BoringSSL, mlspp and nlohmann-json licences; Diszig must
+carry those notices when it distributes a linked build.
 
 ## Why there is no partial voice path
 
-Discord's voice documentation states:
+- A UDP/RTP client without DAVE would be unusable for ordinary calls because
+  legacy non-DAVE connections were discontinued.
+- Voice still needs the voice gateway v8 handshake, heartbeat with `seq_ack`,
+  buffered resume, UDP IP discovery, one select-protocol per session, AEAD RTP
+  framing and a codec pipeline. DAVE handles MLS and the media encryption
+  context through libdave.
+- Shipping a stub or a silent no-op would be a false support claim, so the
+  package stays explicitly unavailable until the transport is real.
 
-- Voice gateway **version 8** is recommended; versions below 4 and connections
-  without an explicit `v` were discontinued on 2024-11-18.
-- Deprecated encryption modes were discontinued on 2024-11-18. Current modes are
-  `aead_xchacha20_poly1305_rtpsize` (documented as required/available) and
-  `aead_aes256_gcm_rtpsize`.
-- DAVE end-to-end encryption has been migrating since September 2024, and
-  Discord states it will **only support E2EE calls starting 2026-03-01** for all
-  audio.
+## Implementation phases
 
-A non-DAVE send path would therefore be rejected or unusable, so shipping UDP
-framing or an Opus encoder without DAVE would be a false voice claim rather than
-a fallback. DAVE is not only encryption flags: it needs the MLS group state
-machine, key packages, transitions and several binary voice opcodes.
+1. **Dependency feasibility and ABI** (done): pinned official libdave release,
+   SHA-256 verification, Zig C-ABI bindings, optional probe, licence inventory.
+2. **Optional integration package**: make libdave and Opus opt-in through a
+   build option, with a `voice` feature that defaults off; add the required
+   NOTICE entries and a platform support matrix. Default consumers still link
+   nothing voice-related.
+3. **Voice gateway control**: v8 handshake, Identify/Ready/Session Description,
+   heartbeats with `seq_ack`, buffered resume, close classification and bounded
+   reconnect. Stage channels can connect without the E2EE media path.
+4. **Transport**: UDP IP discovery, select-protocol once per session, RTP/RTCP
+   framing, AEAD transport modes and bounded jitter/pacing buffers.
+5. **DAVE session lifecycle**: external sender, proposals, commit/welcome,
+   epoch transitions, key ratchets and encryptor/decryptor wiring through
+   libdave. MLS state is never reimplemented in Zig.
+6. **Audio**: Opus encode/decode with explicit ownership, pacing, buffering and
+   allocation-failure tests; receiving audio only where documented.
+7. **Recovery and packaging**: connection recovery tests, per-target consumer
+   builds, reproducible artifact fetching, shutdown/join guarantees and
+   resource bounds.
+8. **Verification**: deterministic protocol/encryption fixtures first; live
+   voice checks only with explicit authorization and dated evidence. No
+   operational voice claim before that.
 
 ## Current surface
 
@@ -34,33 +93,13 @@ const voice = diszig.voice;
 if (voice.isAvailable()) {
     // never taken today
 } else {
-    // explicit: no silent no-op, no stub connection
     _ = voice.require() catch |err| switch (err) {
-        error.UnsupportedVoice => {}, // handle or disable the feature
+        error.UnsupportedVoice => {}, // disable the feature
     };
 }
 ```
 
-Also exposed for documentation and future use, without implying support:
-
-- `voice.status` is `.unavailable`.
-- `voice.reasons` lists `dave_required`, `native_dependencies_not_pinned` and
-  `transport_not_implemented`.
-- `voice.documented_gateway_version` is `8`.
-- `voice.encryption_modes` lists the two current AEAD modes.
-
-## What a future implementation needs
-
-1. Pinned `discord/libdave` and Opus artifacts with content hashes, licence and
-   transitive review, plus NOTICE entries and a per-target ABI check. A wrong
-   artifact must fail the build, not fail at runtime.
-2. Voice gateway v8 handshake, heartbeat with `seq_ack`, buffered resume and
-   bounded payloads.
-3. UDP IP discovery, select-protocol once per session and AEAD RTP framing with
-   bounded buffers and explicit timestamp/sequence handling.
-4. DAVE Identify, session description, transitions, MLS group state, key
-   packages and downgrade/upgrade handling, tested with deterministic fixtures.
-5. Native fixture tests and an external consumer build per supported target.
-
-Live voice tests require separate authorization and have not been run. There is
-no support claim for any platform, codec or DAVE protocol version.
+`voice.reasons` records the DAVE requirement, the probe-only dependency state
+and the missing transport. `voice.documented_gateway_version` is 8 and
+`voice.encryption_modes` lists the two current AEAD modes. `voice.libdave_release`
+is `v1.3.0/cpp`.
