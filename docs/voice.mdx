@@ -31,6 +31,13 @@ not a platform limitation.
   correlation in either order, endpoint normalization, Identify/Select Protocol/
   Heartbeat/Resume/Speaking/Media Sink Wants builders, JSON payload parsing and
   server binary framing. It opens no socket and sends no audio.
+- **Transport primitives**: `packages/voice/udp.zig` builds and validates the
+  74-byte IP-discovery packets with SSRC binding; `packages/voice/rtp.zig`
+  builds/parses the Opus RTP header (including CSRC/extension length) and
+  encrypts/decrypts `rtpsize` packets with AES-256-GCM or
+  XChaCha20-Poly1305 using Zig's audited AEADs. Nonce, tag and trailer layout
+  match Discord's documented modes; keys are zeroed on rotation and failed
+  authentication exposes no plaintext. No socket is opened.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -81,8 +88,10 @@ are shipped under `packages/voice/licenses/` and summarised in
 4. **Voice gateway transport**: v8 handshake, Identify/Ready/Session Description,
    heartbeats with `seq_ack`, buffered resume, close classification and bounded
    reconnect. Stage channels can connect without the E2EE media path.
-5. **Transport**: UDP IP discovery, select-protocol once per session, RTP/RTCP
-   framing, AEAD transport modes and bounded jitter/pacing buffers.
+5. **Transport primitives** (done): discovery framing with SSRC binding, RTP
+   header parsing with CSRC/extension length, and AES-GCM/XChaCha rtpsize
+   encryption with key rotation. Remaining: the UDP socket, select-protocol
+   once per session, RTCP, pacing and bounded jitter buffers.
 6. **DAVE session lifecycle**: external sender, proposals, commit/welcome,
    epoch transitions, key ratchets and encryptor/decryptor wiring through
    libdave. MLS state is never reimplemented in Zig.
