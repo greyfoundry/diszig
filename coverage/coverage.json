@@ -776,6 +776,83 @@
       "docs": ["docs/oauth2.mdx"],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/oauth2.mdx",
       "live_verified": false
+    },
+    {
+      "id": "xs.rpc-ipc",
+      "kind": "external-sdk",
+      "status": "external",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/rpc.mdx",
+      "reason": "RPC controls a local user client over IPC and is scope-gated. A bot SDK cannot implement it without emulating a user client, which Diszig refuses; documented server equivalents live in REST and Gateway plans."
+    },
+    {
+      "id": "xs.rpc-websocket",
+      "kind": "external-sdk",
+      "status": "deprecated",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/rpc.mdx",
+      "reason": "The page marks RPC over WebSocket as deprecated and available only to old private-beta participants; IPC is the supported transport."
+    },
+    {
+      "id": "xs.embedded-app-sdk",
+      "kind": "external-sdk",
+      "status": "external",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/developer-tools/embedded-app-sdk.mdx",
+      "reason": "The SDK runs inside the Discord client iframe. Diszig documents the boundary instead of providing a fake browser API; server counterparts remain separate REST plans."
+    },
+    {
+      "id": "xs.game-sdk",
+      "kind": "external-sdk",
+      "status": "deprecated",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/developer-tools/game-sdk.mdx",
+      "reason": "The page is tagged LEGACY and describes a native client library for rich presence, invites and overlay. Diszig keeps it visible with migration guidance and does not implement it."
+    },
+    {
+      "id": "xs.social-sdk-client",
+      "kind": "external-sdk",
+      "status": "external",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/discord-social-sdk/overview.mdx",
+      "reason": "The Social SDK is a native C++/Unity/Unreal client library for in-game social features. Diszig retains its documented server-side alternatives instead of emulating the client."
+    },
+    {
+      "id": "xs.certified-devices",
+      "kind": "external-sdk",
+      "status": "external",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/certified-devices.mdx",
+      "reason": "Certified device enumeration uses the local Discord client over RPC and a client handshake; it requires a user client and stays external."
+    },
+    {
+      "id": "xs.teams-portal",
+      "kind": "external-workflow",
+      "status": "external",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/teams.mdx",
+      "reason": "Team creation and app transfer are Developer Portal workflows with no public team CRUD endpoint. Team fields on the Application object remain part of the application endpoint plans."
+    },
+    {
+      "id": "xs.lobbies",
+      "kind": "endpoint-batch",
+      "status": "planned",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/resources/lobby.mdx",
+      "reason": "Sixteen documented server routes with 100-per-2-hours development limits; retained for a later endpoint batch, not implemented."
+    },
+    {
+      "id": "xs.provisional-accounts",
+      "kind": "endpoint-batch",
+      "status": "planned",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/discord-social-sdk/development-guides/provisional-accounts/bot-token-endpoint.mdx",
+      "reason": "Documented bot-token and client-credential provisional token and unmerge endpoints; retained for a later endpoint batch. Identity-provider auth types are already typed as wire strings."
+    },
+    {
+      "id": "xs.application-identity-profile",
+      "kind": "endpoint-batch",
+      "status": "planned",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/social-layer/game-stats-widgets/sending-game-data.mdx",
+      "reason": "The PATCH and GET Application Identity Profile routes are documented bot-token server endpoints; retained for a later endpoint batch, not implemented."
+    },
+    {
+      "id": "xs.oauth2-account-merge",
+      "kind": "oauth2-extension",
+      "status": "planned",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/discord-social-sdk/development-guides/provisional-accounts/merging-accounts.mdx",
+      "reason": "Account merging extends the OAuth2 token exchange with external_auth_type and external_auth_token. The current helpers do not send those fields; retained for a later OAuth2 extension."
     }
   ]
 }

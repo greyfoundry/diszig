@@ -1,0 +1,200 @@
+---
+title: Product scope and dispositions
+description: How every documented product surface is treated, including gated and external SDKs
+---
+
+Diszig is a server-side Discord SDK for Zig. This page records what is
+implemented, retained for implementation, gated, external to a bot SDK,
+deprecated or refused. It covers the product pages assigned to this audit:
+Embedded App SDK, the legacy Game SDK, RPC, lobbies, the Social SDK and its
+provisional-account guides, the Application Identity Profile API, teams and
+certified devices.
+
+Sources are pinned in [References](/references). Nothing here is live verified.
+
+## Disposition vocabulary
+
+| Disposition | Meaning |
+| --- | --- |
+| Implemented | A typed public surface with tests and documentation exists. |
+| Retained | A documented server-side surface that belongs in a later endpoint/model package. Not shipped. |
+| Gated | Documented but requires Discord approval, partner access or a Developer Portal configuration. |
+| External | Only meaningful inside a Discord client, browser iframe or vendor SDK. Diszig documents the boundary and does not emulate it. |
+| Deprecated | Documented as legacy or deprecated by Discord. Kept visible with a migration note, not implemented. |
+| Refused | Undocumented, private, self-bot or user-account automation. Never implemented. |
+
+The machine-readable subset is in `coverage/coverage.json`; planned, gated,
+external and deprecated entries carry a source and, where scoped, a reason.
+
+## Embedded App SDK
+
+The Embedded App SDK runs inside the Discord client iframe. Diszig does not ship
+a browser SDK. Commands that read or write application data have server REST
+counterparts, which remain in the endpoint plans.
+
+| Item | Kind | Disposition | Server-side counterpart |
+| --- | --- | --- | --- |
+| `ready()` | method | External | none |
+| `subscribe()` | method | External | Gateway events where documented |
+| `unsubscribe()` | method | External | Gateway events where documented |
+| `close()` | method | External | none |
+| `authenticate()` | command | External | OAuth2 (implemented request helpers) |
+| `authorize()` | command | External | OAuth2 authorization URL (implemented) |
+| `captureLog()` | command | External | none |
+| `encourageHardwareAcceleration()` | command | External | none |
+| `getActivityInstanceConnectedParticipants()` | command | External | none |
+| `getChannel()` | command | External | `GET /channels/{channel.id}` (retained) |
+| `getChannelPermissions()` | command | External | permission helpers (implemented) |
+| `getEntitlements()` | command | External | `GET /applications/{id}/entitlements` (retained) |
+| `getPlatformBehaviors()` | command | External | none |
+| `getRelationships()` | command | External | user-only; no bot endpoint |
+| `getSkus()` | command | External | `GET /applications/{id}/skus` (retained) |
+| `initiateImageUpload()` | command | External | none |
+| `openExternalLink()` | command | External | none |
+| `openInviteDialog()` | command | External | none |
+| `openShareMomentDialog()` | command | External | none |
+| `setActivity()` | command | External | Gateway presence update (builder exists) |
+| `setConfig()` | command | External | none |
+| `setOrientationLockState()` | command | External | none |
+| `shareLink()` | command | External | none |
+| `startPurchase()` | command | External | client purchase flow; no bot endpoint |
+| `userSettingsGetLocale()` | command | External | none |
+| `READY` | event | External | none |
+| `ERROR` | event | External | none |
+| `VOICE_STATE_UPDATE` | event | External | Gateway voice state events (retained) |
+| `SPEAKING_START` | event | External | Gateway speaking events (retained) |
+| `SPEAKING_STOP` | event | External | Gateway speaking events (retained) |
+| `ACTIVITY_LAYOUT_MODE_UPDATE` | event | External | none |
+| `ORIENTATION_UPDATE` | event | External | none |
+| `CURRENT_USER_UPDATE` | event | External | `GET /users/@me` (retained) |
+| `CURRENT_GUILD_MEMBER_UPDATE` | event | External | `GET /users/@me/guilds/{id}/member` (retained) |
+| `THERMAL_STATE_UPDATE` | event | External | none |
+| `ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE` | event | External | none |
+| `RELATIONSHIP_UPDATE` | event | External | none |
+| `ENTITLEMENT_CREATE` | event | External | Gateway entitlement events (retained) |
+
+## RPC
+
+RPC connects to a local Discord client over IPC. It exists to control a user's
+client, is scope-gated for approved partners, and cannot be reproduced by a bot
+SDK without emulating a user client, which Diszig refuses. RPC over WebSocket is
+documented as deprecated and private-beta only.
+
+| Item | Kind | Disposition |
+| --- | --- | --- |
+| `AUTHORIZE`, `AUTHENTICATE` | command | External |
+| `GET_GUILDS`, `GET_GUILD`, `GET_CHANNEL`, `GET_CHANNELS` | command | External |
+| `SET_USER_VOICE_SETTINGS`, `SELECT_VOICE_CHANNEL`, `GET_SELECTED_VOICE_CHANNEL` | command | External |
+| `SELECT_TEXT_CHANNEL`, `GET_VOICE_SETTINGS`, `SET_VOICE_SETTINGS` | command | External |
+| `SUBSCRIBE`, `UNSUBSCRIBE` | command | External |
+| `SET_CERTIFIED_DEVICES` | command | External |
+| `SET_ACTIVITY`, `SEND_ACTIVITY_JOIN_INVITE`, `CLOSE_ACTIVITY_REQUEST` | command | External |
+| `READY`, `ERROR` | event | External |
+| `GUILD_STATUS`, `GUILD_CREATE`, `CHANNEL_CREATE` | event | External |
+| `VOICE_CHANNEL_SELECT`, `VOICE_SETTINGS_UPDATE`, `VOICE_CONNECTION_STATUS` | event | External |
+| `VOICE_STATE_CREATE/UPDATE/DELETE`, `SPEAKING_START/STOP` | event | External |
+| `MESSAGE_CREATE/UPDATE/DELETE` | event | External |
+| `NOTIFICATION_CREATE` | event | External |
+| `ACTIVITY_JOIN`, `ACTIVITY_SPECTATE`, `ACTIVITY_JOIN_REQUEST`, `ACTIVITY_INVITE` | event | External |
+| `CURRENT_USER_UPDATE`, `RELATIONSHIP_UPDATE` | event | External |
+| `ENTITLEMENT_CREATE`, `ENTITLEMENT_DELETE` | event | External |
+| RPC over WebSocket | transport | Deprecated |
+
+Server equivalents for guild, channel, voice-state, message and entitlement data
+belong to Gateway and REST plans; RPC-only actions such as opening a client
+dialog or setting certified devices stay external.
+
+## Lobbies
+
+Lobby endpoints are documented server HTTP routes used by the Social SDK's
+server-side lobby management. They are retained for a later endpoint batch and
+are not implemented. Development rate limits are 100 requests per 2 hours per
+route.
+
+| Route | Disposition |
+| --- | --- |
+| `POST /lobbies` | Retained |
+| `PUT /lobbies` | Retained |
+| `GET /lobbies/{lobby.id}` | Retained |
+| `PATCH /lobbies/{lobby.id}` | Retained |
+| `DELETE /lobbies/{lobby.id}` | Retained |
+| `PUT /lobbies/{lobby.id}/members/{user.id}` | Retained |
+| `POST /lobbies/{lobby.id}/members/bulk` | Retained |
+| `DELETE /lobbies/{lobby.id}/members/{user.id}` | Retained |
+| `DELETE /lobbies/{lobby.id}/members/@me` | Retained |
+| `PATCH /lobbies/{lobby.id}/channel-linking` (link) | Retained |
+| `PATCH /lobbies/{lobby.id}/channel-linking` (unlink) | Retained |
+| `POST /lobbies/{lobby.id}/messages` | Retained |
+| `GET /lobbies/{lobby.id}/messages` | Retained |
+| `PUT /lobbies/{lobby.id}/messages/{message.id}/moderation-metadata` | Retained |
+| `POST /lobbies/{lobby.id}/members/@me/invites` | Retained |
+| `POST /lobbies/{lobby.id}/members/{user.id}/invites` | Retained |
+
+## Legacy Game SDK
+
+The Game SDK page is tagged `LEGACY`. It is a native client library for rich
+presence, activity invites and the game overlay. Diszig does not implement it.
+Use Gateway presence and the documented activity/RPC surfaces instead, or the
+Social SDK for in-game features.
+
+| Area | Items | Disposition |
+| --- | --- | --- |
+| Core | `Create`, `Destroy`, `SetLogHook`, `RunCallbacks`, `GetActivityManager`, `GetUserManager`, `GetOverlayManager` | Deprecated |
+| Activities | `RegisterCommand`, `RegisterSteam`, `UpdateActivity`, `ClearActivity`, `SendRequestReply`, `SendInvite`, `AcceptInvite` | Deprecated |
+| Activity events | `OnActivityJoin`, `OnActivitySpectate`, `OnActivityJoinRequest`, `OnActivityInvite` | Deprecated |
+| Overlay | `IsEnabled`, `IsLocked`, `SetLocked`, `OpenActivityInvite`, `OpenGuildInvite`, `OpenVoiceSettings`, `OnToggle`, `Activate Overlay Invite Modal` | Deprecated |
+| User | `GetCurrentUser`, `GetUser`, `GetCurrentUserPremiumType`, `CurrentUserHasFlag`, `OnCurrentUserUpdate` | Deprecated |
+| Data models | Result/LogLevel/CreateFlags/ActivityType/ActivityActionType/UserFlag/PremiumType enums and the Activity/User structs | Deprecated |
+
+## Social SDK
+
+The Social SDK is a native C++/Unity/Unreal client library for account linking,
+provisional accounts, friends, rich presence, game invites, direct messages,
+lobbies and voice chat. The client library itself is external. Its documented
+server-side alternatives are retained:
+
+- Lobby routes (table above).
+- Provisional-account routes: `POST /partner-sdk/token/bot`, `POST
+  /partner-sdk/token`, `POST /partner-sdk/provisional-accounts/unmerge/bot` and
+  `POST /partner-sdk/provisional-accounts/unmerge`. Retained.
+- OAuth2 token exchange extended with `external_auth_type` and
+  `external_auth_token` for account merging. Retained; the current OAuth2
+  builders do not send those fields yet.
+- Application Identity Profile routes below.
+- Linked-channel, direct-message and voice features use the same Gateway and
+  REST surfaces as bots where they are documented; client-only presentation
+  stays external.
+
+Public-client operation and external identity providers are gated by
+application configuration and provider approval. The eight identity-provider
+auth types are already typed as wire strings; typing them grants nothing.
+
+## Game identity and stats
+
+Application Identity Profile API, authenticated with a bot token. The player
+must have linked their account first.
+
+| Route | Disposition |
+| --- | --- |
+| `PATCH /applications/{application.id}/users/{user.id}/identities/{provider_issued_user_id}/profile` | Retained |
+| `GET /applications/{application.id}/users/{user.id}/identities/{provider_issued_user_id}/profile` | Retained |
+
+## Teams and certified devices
+
+- Teams are managed through the Developer Portal. There is no public team CRUD
+  HTTP endpoint; team fields on the Application object are retained with the
+  application endpoints. Portal workflows are external.
+- Certified devices are enumerated by the local Discord client over RPC's
+  `SET_CERTIFIED_DEVICES` and the certified-device HTTP/WebSocket handshake.
+  Both require a user client and stay external.
+
+## Refused
+
+- User-account automation, self-bots and undocumented user-client routes.
+- Private protocol emulation for client-only SDK features.
+- Fake server APIs that merely rename a browser or native client call.
+- Token, credential or private-data collection beyond what a documented server
+  flow requires.
+
+Requests for these are rejected rather than stubbed. An unsupported operation
+returns an explicit error; it never reports fabricated success.

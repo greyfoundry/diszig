@@ -24,7 +24,7 @@ Those states are reported separately and never merged into a single "done" flag.
 
 ## Current status
 
-Implemented and tested primitives:
+Implemented and tested surfaces:
 
 - Snowflake parsing, JSON string round-tripping and timestamp helpers.
 - ISO8601 timestamp parsing and formatting.
@@ -38,23 +38,35 @@ Implemented and tested primitives:
 - Finite retry policy with explicit ambiguous non-idempotent writes.
 - Streaming multipart uploads and standard non-signed CDN URL construction.
 - Bounded cursor pagination and audit-reason encoding.
-- Tolerant inbound JSON helpers: presence, unknown integer enums, one-of
-  validation and size/depth-bounded parsing.
-- Shared model batches one and two: gateway discovery/session limits, errors,
-  GitHub, automod enums, keyword metadata, permissions responses and common
-  guild/channel/webhook enums.
+- Documented OAuth2 authorization, token, refresh, client-credentials and
+  revocation request builders, with callback state/issuer checks and redacted
+  secrets. No HTTP exchange or token storage.
+- Gateway transport, bounded `zlib-stream` decompression, heartbeat liveness,
+  Identify/Resume payloads, close classification, bounded recovery policy and a
+  fixed-capacity dispatch queue.
+- All documented Gateway send builders and intents, including the
+  120-events-per-60-seconds connection budget.
+- Typed channel, command-permission, guild, integration, interaction-envelope,
+  invite, member and message event batches; unknown fields and enums are retained.
+- Message and embed builders with documented validation.
+- Shared protocol model batches: users, guilds, applications, channels, commands,
+  components, interactions, messages, monetization, resources, voice control and
+  social.
 
-No REST route, Gateway event, component, interaction, sharding mode or voice
-capability is implemented or live verified. Planned and gated surfaces remain in
-the internal inventory with an owner and source rationale; they are not counted
-as shipped.
+No REST endpoint wrapper, automatic Gateway reconnect orchestration, sharding
+mode, client facade or voice capability is implemented or live verified.
+Dispositions for the remaining documented product surfaces, including external
+and deprecated SDKs, are in [Product scope](/scope). Planned and gated surfaces
+remain in the internal inventory with a source and rationale; they are not
+counted as shipped.
 
 ## Gated and external scopes
 
 A surface may be marked `gated`, `external` or `deprecated` with a source and
 reason. Gated product capabilities (for example approved-app RPC, monetization
 or provisional accounts) remain visible and are not silently removed. External
-client SDK boundaries are documented rather than emulated.
+client SDK boundaries are documented rather than emulated. The item-level
+dispositions are in [Product scope](/scope).
 
 ## Fixtures
 
