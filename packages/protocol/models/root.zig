@@ -11,4 +11,5 @@ pub const interactions = @import("interactions.zig");
 pub const messages = @import("messages.zig");
 pub const monetization = @import("monetization.zig");
 pub const resources = @import("resources.zig");
+pub const social = @import("social.zig");
 pub const voice_control = @import("voice_control.zig");
