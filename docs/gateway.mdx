@@ -168,9 +168,9 @@ the event is returned; they never wait for application callbacks.
 CHANNEL_PINS_UPDATE), APPLICATION_COMMAND_PERMISSIONS_UPDATE, the first guild
 batch (GUILD_CREATE, GUILD_UPDATE, GUILD_DELETE, GUILD_AUDIT_LOG_ENTRY_CREATE,
 GUILD_BAN_ADD, GUILD_BAN_REMOVE), the integration batch (INTEGRATION_CREATE,
-INTEGRATION_UPDATE, INTEGRATION_DELETE) and INTERACTION_CREATE. Every other
-event is `.raw` with the original gateway envelope; EVENT-* packages add typed
-payloads.
+INTEGRATION_UPDATE, INTEGRATION_DELETE), INTERACTION_CREATE and the invite batch
+(INVITE_CREATE, INVITE_DELETE). Every other event is `.raw` with the original
+gateway envelope; EVENT-* packages add typed payloads.
 
 Typed channel payloads use `Presence` for nullable fields: an omitted update
 field is absent and does not clear it, while an explicit null is a clear.
