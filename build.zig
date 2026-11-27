@@ -246,6 +246,18 @@ pub fn build(b: *std.Build) void {
     });
     test_step.dependOn(&b.addRunArtifact(public_channels_models_tests).step);
 
+    const public_commands_models_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/protocol/models/commands.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_commands_models_tests).step);
+
     const gateway_tests = b.addTest(.{ .root_module = gateway });
     test_step.dependOn(&b.addRunArtifact(gateway_tests).step);
 
