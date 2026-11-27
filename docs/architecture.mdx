@@ -18,7 +18,8 @@ packages/builders/        Validated message and interaction payloads
 packages/interactions/    Response lifecycle and signed HTTP delivery
 packages/client/          Client facade, managers and cache policy
 packages/sharding/        Native shards and local worker supervision
-packages/voice/           Optional voice integration
+packages/voice/           Optional voice capability report; no transport,
+                          codec or native dependency is linked
 examples/                 Compiled consumer examples
 tests/                    Cross-package fixtures and failure tests
 benchmarks/               Reproducible measurements
@@ -35,3 +36,4 @@ Public types are written and reviewed manually first. Generation is considered o
 Protocol types sit at the bottom of the dependency graph. REST, Gateway and builders consume them; interactions and the client compose lower-level modules. Sharding shares Gateway contracts across native and hybrid modes. Optional voice must not become a dependency of a basic REST consumer. Package names and public signatures remain subject to compiler-tested design.
 
 Memory ownership, cancellation, error handling and resource bounds are part of the public contract. We will publish precise signatures and examples once the compiler-tested implementation exists.
+

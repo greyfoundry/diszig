@@ -853,6 +853,31 @@
       "status": "planned",
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/discord-social-sdk/development-guides/provisional-accounts/merging-accounts.mdx",
       "reason": "Account merging extends the OAuth2 token exchange with external_auth_type and external_auth_token. The current helpers do not send those fields; retained for a later OAuth2 extension."
+    },
+    {
+      "id": "voice.capability",
+      "kind": "capability-report",
+      "status": "partial",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/voice/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/voice/root.zig",
+        "tests/voice/root.zig"
+      ],
+      "docs": ["docs/voice.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/voice-connections.mdx",
+      "live_verified": false
+    },
+    {
+      "id": "voice.transport-dave",
+      "kind": "planned-surface",
+      "status": "planned",
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/voice-connections.mdx",
+      "reason": "Voice gateway v8, UDP/RTP framing and DAVE (MLS/E2EE) are not implemented. Discord states E2EE is the only supported call mode for audio from 2026-03-01, so no non-DAVE fallback is shipped."
     }
   ]
 }

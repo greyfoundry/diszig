@@ -50,6 +50,14 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    // Optional voice capability report. It intentionally has no dependencies;
+    // see packages/voice/root.zig and .private/reports/decisions/voice.md.
+    const voice = b.addModule("voice", .{
+        .root_source_file = b.path("packages/voice/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const zlib = addZlib(b, target, optimize);
     websocket.linkLibrary(zlib.lib);
     websocket.addIncludePath(zlib.include);
@@ -69,6 +77,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "rest", .module = rest },
             .{ .name = "gateway", .module = gateway },
             .{ .name = "builders", .module = builders },
+            .{ .name = "voice", .module = voice },
         },
     });
 
@@ -125,6 +134,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_step.dependOn(&b.addRunArtifact(public_oauth2_tests).step);
+
+    const public_voice_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/voice/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_voice_tests).step);
 
     const public_transport_tests = b.addTest(.{
         .root_module = b.createModule(.{

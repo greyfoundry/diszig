@@ -5,6 +5,6 @@
   "colors": {"primary": "#C87817", "light": "#F7A41D", "dark": "#A75812"},
   "navigation": {"groups": [
     {"group": "Diszig", "pages": ["index", "status", "architecture"]},
-    {"group": "Engineering", "pages": ["ownership", "coverage", "gateway", "builders", "oauth2", "scope", "sharding", "compatibility", "migrations", "references", "contributing"]}
+    {"group": "Engineering", "pages": ["ownership", "coverage", "gateway", "builders", "oauth2", "scope", "voice", "sharding", "compatibility", "migrations", "references", "contributing"]}
   ]}
 }

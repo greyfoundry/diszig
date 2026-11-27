@@ -1,0 +1,66 @@
+---
+title: Voice (optional, unavailable)
+description: Current voice status, the DAVE requirement and what a future implementation needs
+---
+
+Voice is **not implemented**. `diszig.voice` is an explicit capability report,
+not a transport. `isAvailable()` is false on every target, `require()` returns
+`error.UnsupportedVoice`, and the package links no WebSocket, UDP, Opus or
+libdave code. Basic bots, REST, Gateway and message builders never depend on it.
+
+## Why there is no partial voice path
+
+Discord's voice documentation states:
+
+- Voice gateway **version 8** is recommended; versions below 4 and connections
+  without an explicit `v` were discontinued on 2024-11-18.
+- Deprecated encryption modes were discontinued on 2024-11-18. Current modes are
+  `aead_xchacha20_poly1305_rtpsize` (documented as required/available) and
+  `aead_aes256_gcm_rtpsize`.
+- DAVE end-to-end encryption has been migrating since September 2024, and
+  Discord states it will **only support E2EE calls starting 2026-03-01** for all
+  audio.
+
+A non-DAVE send path would therefore be rejected or unusable, so shipping UDP
+framing or an Opus encoder without DAVE would be a false voice claim rather than
+a fallback. DAVE is not only encryption flags: it needs the MLS group state
+machine, key packages, transitions and several binary voice opcodes.
+
+## Current surface
+
+```zig
+const voice = diszig.voice;
+
+if (voice.isAvailable()) {
+    // never taken today
+} else {
+    // explicit: no silent no-op, no stub connection
+    _ = voice.require() catch |err| switch (err) {
+        error.UnsupportedVoice => {}, // handle or disable the feature
+    };
+}
+```
+
+Also exposed for documentation and future use, without implying support:
+
+- `voice.status` is `.unavailable`.
+- `voice.reasons` lists `dave_required`, `native_dependencies_not_pinned` and
+  `transport_not_implemented`.
+- `voice.documented_gateway_version` is `8`.
+- `voice.encryption_modes` lists the two current AEAD modes.
+
+## What a future implementation needs
+
+1. Pinned `discord/libdave` and Opus artifacts with content hashes, licence and
+   transitive review, plus NOTICE entries and a per-target ABI check. A wrong
+   artifact must fail the build, not fail at runtime.
+2. Voice gateway v8 handshake, heartbeat with `seq_ack`, buffered resume and
+   bounded payloads.
+3. UDP IP discovery, select-protocol once per session and AEAD RTP framing with
+   bounded buffers and explicit timestamp/sequence handling.
+4. DAVE Identify, session description, transitions, MLS group state, key
+   packages and downgrade/upgrade handling, tested with deterministic fixtures.
+5. Native fixture tests and an external consumer build per supported target.
+
+Live voice tests require separate authorization and have not been run. There is
+no support claim for any platform, codec or DAVE protocol version.

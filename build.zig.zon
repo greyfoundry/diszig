@@ -12,6 +12,9 @@
             .lazy = true,
             .hash = "N-V-__8AAJ2cNgAgfBtAw33Bxfu1IWISDeKKSr3DAqoAysIJ",
         },
+        // Deliberately no voice dependency. Optional voice is unavailable and
+        // links nothing; libdave and Opus require provenance, hash and ABI
+        // review first. See .private/reports/decisions/voice.md.
     },
     .paths = .{
         "build.zig",
