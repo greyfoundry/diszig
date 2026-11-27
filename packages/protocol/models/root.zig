@@ -6,3 +6,4 @@ pub const guilds = @import("guilds.zig");
 pub const applications = @import("applications.zig");
 pub const channels = @import("channels.zig");
 pub const commands = @import("commands.zig");
+pub const components = @import("components.zig");
