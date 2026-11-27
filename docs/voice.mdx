@@ -25,6 +25,12 @@ not a platform limitation.
   official library, creates a session, initializes an MLS group, obtains a key
   package and destroys the session. It is excluded from the default build and
   `zig build check`.
+- **Control layer**: `packages/voice/gateway.zig` covers the documented voice
+  opcode inventory (including binary DAVE opcodes), close-code classification,
+  AEAD negotiation with no plaintext fallback, main-Gateway state/server
+  correlation in either order, endpoint normalization, Identify/Select Protocol/
+  Heartbeat/Resume/Speaking/Media Sink Wants builders, JSON payload parsing and
+  server binary framing. It opens no socket and sends no audio.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -64,24 +70,27 @@ carry those notices when it distributes a linked build.
 
 1. **Dependency feasibility and ABI** (done): pinned official libdave release,
    SHA-256 verification, Zig C-ABI bindings, optional probe, licence inventory.
-2. **Optional integration package**: make libdave and Opus opt-in through a
+2. **Control and negotiation** (done, transport-agnostic): opcode inventory,
+   close classification, AEAD selection, state/server correlation and control
+   payload codecs in packages/voice/gateway.zig.
+3. **Optional integration package**: make libdave and Opus opt-in through a
    build option, with a `voice` feature that defaults off; add the required
    NOTICE entries and a platform support matrix. Default consumers still link
    nothing voice-related.
-3. **Voice gateway control**: v8 handshake, Identify/Ready/Session Description,
+4. **Voice gateway transport**: v8 handshake, Identify/Ready/Session Description,
    heartbeats with `seq_ack`, buffered resume, close classification and bounded
    reconnect. Stage channels can connect without the E2EE media path.
-4. **Transport**: UDP IP discovery, select-protocol once per session, RTP/RTCP
+5. **Transport**: UDP IP discovery, select-protocol once per session, RTP/RTCP
    framing, AEAD transport modes and bounded jitter/pacing buffers.
-5. **DAVE session lifecycle**: external sender, proposals, commit/welcome,
+6. **DAVE session lifecycle**: external sender, proposals, commit/welcome,
    epoch transitions, key ratchets and encryptor/decryptor wiring through
    libdave. MLS state is never reimplemented in Zig.
-6. **Audio**: Opus encode/decode with explicit ownership, pacing, buffering and
+7. **Audio**: Opus encode/decode with explicit ownership, pacing, buffering and
    allocation-failure tests; receiving audio only where documented.
-7. **Recovery and packaging**: connection recovery tests, per-target consumer
+8. **Recovery and packaging**: connection recovery tests, per-target consumer
    builds, reproducible artifact fetching, shutdown/join guarantees and
    resource bounds.
-8. **Verification**: deterministic protocol/encryption fixtures first; live
+9. **Verification**: deterministic protocol/encryption fixtures first; live
    voice checks only with explicit authorization and dated evidence. No
    operational voice claim before that.
 

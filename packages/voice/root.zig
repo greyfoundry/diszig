@@ -23,6 +23,8 @@
 
 const std = @import("std");
 
+pub const gateway = @import("gateway.zig");
+
 pub const Error = error{UnsupportedVoice};
 
 pub const Status = enum {

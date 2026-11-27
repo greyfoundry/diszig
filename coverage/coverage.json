@@ -1014,6 +1014,25 @@
       ],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L928",
       "live_verified": false
+    },
+    {
+      "id": "voice.gateway-control-01",
+      "kind": "voice-control",
+      "status": "partial",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/voice/gateway.zig",
+        "packages/voice/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/voice/gateway.zig",
+        "tests/voice/gateway.zig"
+      ],
+      "docs": ["docs/voice.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/opcodes-and-status-codes.mdx#L60",
+      "live_verified": false
     }
   ]
 }

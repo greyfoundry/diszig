@@ -22,7 +22,9 @@
         "src",
         "packages",
         "examples",
-        "third_party",
+        // Scope to the vendored websocket only: fetched libdave artifacts under
+        // third_party/libdave are not part of the source package.
+        "third_party/websocket",
         "tools/fetch_libdave.py",
         "LICENSE",
         "NOTICE",

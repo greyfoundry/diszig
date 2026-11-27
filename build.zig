@@ -61,6 +61,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("packages/voice/root.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{
+            .{ .name = "protocol", .module = protocol },
+        },
     });
 
     // Optional libdave ABI probe. Nothing here runs unless -Dlibdave-dir is set;
@@ -210,6 +213,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_step.dependOn(&b.addRunArtifact(public_voice_tests).step);
+
+    const public_voice_gateway_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/voice/gateway.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_voice_gateway_tests).step);
 
     const public_transport_tests = b.addTest(.{
         .root_module = b.createModule(.{
