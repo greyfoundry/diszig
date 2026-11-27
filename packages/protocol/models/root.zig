@@ -2,3 +2,4 @@
 
 pub const shared = @import("shared.zig");
 pub const users = @import("users.zig");
+pub const guilds = @import("guilds.zig");
