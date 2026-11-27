@@ -22,9 +22,10 @@ not a platform limitation.
   the C API (max protocol version, session create/destroy, group init, protocol
   version, marshalled MLS key package).
 - **Optional ABI probe**: `zig build voice-probe -Dlibdave-dir=...` links the
-  official library, creates a session, initializes an MLS group, obtains a key
-  package and destroys the session. It is excluded from the default build and
-  `zig build check`.
+  official library, creates a session, initializes it, obtains a key package,
+  and exercises the encryptor/decryptor in passthrough mode. It is excluded from
+  the default build and `zig build check`. A formed MLS group needs
+  voice-server external-sender/proposal payloads.
 - **Control layer**: `packages/voice/gateway.zig` covers the documented voice
   opcode inventory (including binary DAVE opcodes), close-code classification,
   AEAD negotiation (AES preferred, XChaCha required) with no plaintext fallback, main-Gateway state/server
@@ -38,6 +39,13 @@ not a platform limitation.
   XChaCha20-Poly1305 using Zig's audited AEADs. Nonce, tag and trailer layout
   match Discord's documented modes; keys are zeroed on rotation and failed
   authentication exposes no plaintext. No socket is opened.
+- **DAVE transitions**: `packages/voice/transitions.zig` is the opcode 21-31
+  state machine (epoch preparation, proposals, commit/welcome, ready, execute,
+  downgrade, explicit invalid-commit). `packages/voice/dave.zig` now binds the
+  public libdave session transition calls plus encryptor/decryptor handles; the
+  probe exercises session creation, key packages and passthrough media frames.
+  A real MLS commit/welcome needs voice-server payloads, which have not been
+  exercised without live authorization.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -92,9 +100,11 @@ are shipped under `packages/voice/licenses/` and summarised in
    header parsing with CSRC/extension length, and AES-GCM/XChaCha rtpsize
    encryption with key rotation. Remaining: the UDP socket, select-protocol
    once per session, RTCP, pacing and bounded jitter buffers.
-6. **DAVE session lifecycle**: external sender, proposals, commit/welcome,
-   epoch transitions, key ratchets and encryptor/decryptor wiring through
-   libdave. MLS state is never reimplemented in Zig.
+6. **DAVE session lifecycle** (protocol state machine done): external sender,
+   proposals, commit/welcome, epoch transitions, key ratchets and
+   encryptor/decryptor handles through libdave. Live MLS group transitions need
+   authorization and real voice-server payloads. MLS state is never
+   reimplemented in Zig.
 7. **Audio**: Opus encode/decode with explicit ownership, pacing, buffering and
    allocation-failure tests; receiving audio only where documented.
 8. **Recovery and packaging**: connection recovery tests, per-target consumer
