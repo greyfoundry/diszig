@@ -129,6 +129,74 @@ pub const KeyRatchet = struct {
     }
 };
 
+/// Native side of the DAVE transition state machine. It owns one libdave
+/// session and copies libdave's heap outputs into caller buffers, so callers
+/// never hold a libdave allocation. The MLS group is only formed after the
+/// voice server supplies external-sender and proposal payloads.
+pub const Driver = struct {
+    session: Session,
+    allocator: std.mem.Allocator,
+
+    pub fn init(allocator: std.mem.Allocator, auth_session_id: ?[*:0]const u8, version: u16, group_id: u64, self_user_id: [*:0]const u8) !Driver {
+        var session = try Session.create(auth_session_id);
+        errdefer session.destroy();
+        session.initGroup(version, group_id, self_user_id);
+        return .{ .session = session, .allocator = allocator };
+    }
+
+    pub fn deinit(self: *Driver) void {
+        self.session.destroy();
+        self.* = undefined;
+    }
+
+    pub fn setExternalSender(self: *Driver, bytes: []const u8) void {
+        self.session.setExternalSender(bytes);
+    }
+
+    pub fn addRecognizedUser(self: *Driver, user_id: [*:0]const u8) void {
+        self.session.addRecognizedUser(user_id);
+    }
+
+    /// Copies the key package into `out`. Returns `error.BufferTooSmall` if the
+    /// caller buffer cannot hold it.
+    pub fn writeKeyPackage(self: *Driver, out: []u8) ![]const u8 {
+        const bytes = try self.session.keyPackage(self.allocator);
+        defer self.allocator.free(bytes);
+        if (bytes.len > out.len) return error.BufferTooSmall;
+        @memcpy(out[0..bytes.len], bytes);
+        return out[0..bytes.len];
+    }
+
+    /// Runs MLS proposals and copies the commit/welcome bytes into `out`.
+    pub fn writeCommitWelcome(self: *Driver, proposals: []const u8, out: []u8) ![]const u8 {
+        const bytes = try self.session.processProposals(self.allocator, proposals);
+        defer self.allocator.free(bytes);
+        if (bytes.len > out.len) return error.BufferTooSmall;
+        @memcpy(out[0..bytes.len], bytes);
+        return out[0..bytes.len];
+    }
+
+    pub fn applyCommit(self: *Driver, commit: []const u8) Error!void {
+        try self.session.processCommit(commit);
+    }
+
+    pub fn applyWelcome(self: *Driver, welcome: []const u8) Error!void {
+        try self.session.processWelcome(welcome);
+    }
+
+    pub fn writeEpochAuthenticator(self: *Driver, out: []u8) ![]const u8 {
+        const bytes = try self.session.lastEpochAuthenticator(self.allocator);
+        defer self.allocator.free(bytes);
+        if (bytes.len > out.len) return error.BufferTooSmall;
+        @memcpy(out[0..bytes.len], bytes);
+        return out[0..bytes.len];
+    }
+
+    pub fn keyRatchet(self: *Driver, user_id: [*:0]const u8) !KeyRatchet {
+        return self.session.keyRatchet(user_id);
+    }
+};
+
 pub const Encryptor = struct {
     handle: c.DAVEEncryptorHandle,
 
@@ -153,6 +221,11 @@ pub const Encryptor = struct {
 
     pub fn hasKeyRatchet(self: Encryptor) bool {
         return c.daveEncryptorHasKeyRatchet(self.handle);
+    }
+
+    /// Borrows the ratchet; the caller retains ownership and must outlive use.
+    pub fn setKeyRatchet(self: Encryptor, ratchet: KeyRatchet) void {
+        c.daveEncryptorSetKeyRatchet(self.handle, ratchet.handle);
     }
 
     pub fn assignOpusSsrc(self: Encryptor, ssrc: u32) void {
@@ -196,6 +269,11 @@ pub const Decryptor = struct {
 
     pub fn setPassthrough(self: Decryptor, enabled: bool) void {
         c.daveDecryptorTransitionToPassthroughMode(self.handle, enabled);
+    }
+
+    /// Borrows the ratchet; the caller retains ownership and must outlive use.
+    pub fn transitionToKeyRatchet(self: Decryptor, ratchet: KeyRatchet) void {
+        c.daveDecryptorTransitionToKeyRatchet(self.handle, ratchet.handle);
     }
 
     pub fn decrypt(self: Decryptor, out: []u8, frame: []const u8) ![]const u8 {

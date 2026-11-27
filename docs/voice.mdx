@@ -42,11 +42,13 @@ not a platform limitation.
 - **DAVE transitions**: `packages/voice/transitions.zig` is the opcode 21-31
   state machine (epoch preparation, proposals, commit/welcome, ready, execute,
   downgrade, immediate transition 0, explicit invalid-commit plus key-package
-  reset), with JSON codecs for opcodes 21-24/31 and binary framing for 25-30. `packages/voice/dave.zig` now binds the
-  public libdave session transition calls plus encryptor/decryptor handles; the
-  probe exercises session creation, key packages and passthrough media frames.
-  A real MLS commit/welcome needs voice-server payloads, which have not been
-  exercised without live authorization.
+  reset), with JSON codecs for opcodes 21-24/31 and binary framing for 25-30.
+  `packages/voice/dave.zig` binds the public libdave session transition calls and
+  exposes a `Driver` that copies key package/commit-welcome/epoch-authenticator
+  output into caller buffers, plus encryptor/decryptor handles with key-ratchet
+  assignment. The probe exercises session creation, key packages and passthrough
+  media frames. A formed MLS group, ratcheted media and live transitions require
+  voice-server payloads and remain pending authorized live verification.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and

@@ -22,6 +22,14 @@ pub fn main() !void {
     const key_package = try session.keyPackage(arena.allocator());
     if (key_package.len == 0) return error.EmptyKeyPackage;
 
+    // The transition driver copies libdave output into caller buffers. Use it
+    // for the key package so the ownership contract is exercised.
+    var driver = try dave.Driver.init(arena.allocator(), "diszig-voice-probe", version, 1, "1");
+    defer driver.deinit();
+    var key_buffer: [4096]u8 = undefined;
+    const driver_key_package = try driver.writeKeyPackage(&key_buffer);
+    if (driver_key_package.len == 0) return error.EmptyKeyPackage;
+
     // The public release does not expose the test-only external-sender helper,
     // so a real MLS commit/welcome round-trip needs voice-server payloads. The
     // media frames can still be exercised in passthrough mode.
