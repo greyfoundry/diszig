@@ -24,6 +24,14 @@ test "every listed schema is exported" {
     _ = users.UserProfileMetadata;
     _ = users.WidgetActivity;
     _ = users.WidgetUserDiscriminator;
+    _ = users.QuarantineUserAction;
+    _ = users.QuarantineUserActionResponse;
+    _ = users.TargetUsersJobStatusResponse;
+    _ = users.UserAvatarDecorationResponse;
+    _ = users.UserCommunicationDisabledAction;
+    _ = users.UserCommunicationDisabledActionResponse;
+    _ = users.UserNameplateResponse;
+    _ = users.WidgetMember;
 }
 
 test "enum values match the pinned schema" {
@@ -87,6 +95,41 @@ test "profile response parses bounded arrays" {
     defer parsed.deinit();
     try std.testing.expectEqualStrings("a", parsed.value.keyword_filter[0]);
     try std.testing.expectEqualStrings("c", parsed.value.allow_list[0]);
+}
+
+test "batch 2 action and widget contracts validate" {
+    try (users.QuarantineUserAction{ .type = .quarantine_user }).validate();
+    try std.testing.expectError(
+        error.InvalidActionType,
+        (users.QuarantineUserAction{ .type = .block_message }).validate(),
+    );
+    try (users.UserCommunicationDisabledActionResponse{
+        .type = .user_communication_disabled,
+        .metadata = .{ .duration_seconds = 60 },
+    }).validate();
+
+    var member = try std.json.parseFromSlice(users.WidgetMember, std.testing.allocator,
+        \\{"id":"1","username":"w","discriminator":"0000","avatar":null,"status":"online","avatar_url":"https://cdn/x.png"}
+    , .{ .ignore_unknown_fields = true });
+    defer member.deinit();
+    try member.value.validate();
+}
+
+fn parseWidgetMember(allocator: std.mem.Allocator, payload: []const u8) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const value = try std.json.parseFromSliceLeaky(users.WidgetMember, arena.allocator(), payload, .{
+        .ignore_unknown_fields = true,
+    });
+    try value.validate();
+}
+
+test "allocation failure while parsing a widget member is leak free" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseWidgetMember,
+        .{"{\"id\":\"1\",\"username\":\"w\",\"discriminator\":\"0000\",\"avatar\":null,\"status\":\"online\",\"avatar_url\":\"https://cdn/x.png\",\"activity\":{\"name\":\"Spotify\"},\"channel_id\":\"2\"}"},
+    );
 }
 
 fn parseAccount(allocator: std.mem.Allocator, payload: []const u8) !void {

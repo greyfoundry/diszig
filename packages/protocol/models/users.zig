@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const json = @import("../json.zig");
+const shared = @import("shared.zig");
 
 pub const Error = error{
     MissingName,
@@ -19,6 +20,7 @@ pub const Error = error{
     TooManyAllowListEntries,
     InvalidAllowListEntry,
     InvalidDiscriminator,
+    InvalidActionType,
 };
 
 pub const ActivityActionTypes = enum(u8) {
@@ -191,6 +193,89 @@ pub const WidgetActivity = struct {
     name: []const u8,
 };
 
+pub const QuarantineUserAction = struct {
+    type: shared.AutomodActionType,
+    metadata: ?QuarantineUserActionMetadata = null,
+
+    pub fn validate(self: QuarantineUserAction) Error!void {
+        if (self.type != .quarantine_user) return error.InvalidActionType;
+    }
+};
+
+pub const QuarantineUserActionResponse = struct {
+    type: shared.AutomodActionType,
+    metadata: QuarantineUserActionMetadataResponse,
+
+    pub fn validate(self: QuarantineUserActionResponse) Error!void {
+        if (self.type != .quarantine_user) return error.InvalidActionType;
+    }
+};
+
+pub const UserCommunicationDisabledAction = struct {
+    type: shared.AutomodActionType,
+    metadata: UserCommunicationDisabledActionMetadata,
+
+    pub fn validate(self: UserCommunicationDisabledAction) Error!void {
+        if (self.type != .user_communication_disabled) return error.InvalidActionType;
+        try self.metadata.validate();
+    }
+};
+
+pub const UserCommunicationDisabledActionResponse = struct {
+    type: shared.AutomodActionType,
+    metadata: UserCommunicationDisabledActionMetadataResponse,
+
+    pub fn validate(self: UserCommunicationDisabledActionResponse) Error!void {
+        if (self.type != .user_communication_disabled) return error.InvalidActionType;
+    }
+};
+
+/// Status of a bulk target-users job. Timestamps stay as documented ISO8601
+/// strings in this batch; callers parse them with `protocol.Timestamp`.
+pub const TargetUsersJobStatusResponse = struct {
+    status: TargetUsersJobStatusTypes,
+    total_users: shared.UInt32Type,
+    processed_users: shared.UInt32Type,
+    created_at: ?[]const u8,
+    completed_at: ?[]const u8,
+    error_message: ?[]const u8,
+};
+
+pub const UserAvatarDecorationResponse = struct {
+    asset: []const u8,
+    sku_id: ?shared.SnowflakeType,
+};
+
+pub const UserNameplateResponse = struct {
+    sku_id: ?shared.SnowflakeType,
+    asset: []const u8,
+    label: []const u8,
+    palette: shared.NameplatePalette,
+};
+
+/// Widget member as returned by the unauthenticated widget endpoint. The
+/// pinned schema declares `avatar` as JSON null, so it is retained as a raw
+/// required value rather than typed as a string that can never arrive.
+pub const WidgetMember = struct {
+    id: []const u8,
+    username: []const u8,
+    discriminator: []const u8,
+    avatar: std.json.Value,
+    status: []const u8,
+    avatar_url: []const u8,
+    activity: ?WidgetActivity = null,
+    deaf: ?bool = null,
+    mute: ?bool = null,
+    self_deaf: ?bool = null,
+    self_mute: ?bool = null,
+    suppress: ?bool = null,
+    channel_id: ?shared.SnowflakeType = null,
+
+    pub fn validate(self: WidgetMember) Error!void {
+        _ = try WidgetUserDiscriminator.parse(self.discriminator);
+    }
+};
+
 fn validateBase64(value: []const u8) Error!void {
     _ = std.base64.standard.Decoder.calcSizeForSlice(value) catch return error.InvalidBase64;
 }
@@ -294,4 +379,74 @@ test "unknown inbound enum values are retained" {
     defer provider.deinit();
     try std.testing.expectEqual(@as(?ConnectedAccountProviders, null), provider.value.known());
     try std.testing.expectEqualStrings("future", provider.value.raw);
+}
+
+test "automod user actions require their documented type" {
+    try (QuarantineUserAction{ .type = .quarantine_user }).validate();
+    try std.testing.expectError(
+        error.InvalidActionType,
+        (QuarantineUserAction{ .type = .block_message }).validate(),
+    );
+    try std.testing.expectError(
+        error.InvalidActionType,
+        (QuarantineUserActionResponse{ .type = .flag_to_channel, .metadata = .{} }).validate(),
+    );
+
+    try (UserCommunicationDisabledAction{
+        .type = .user_communication_disabled,
+        .metadata = .{ .duration_seconds = 60 },
+    }).validate();
+    try std.testing.expectError(
+        error.InvalidActionType,
+        (UserCommunicationDisabledAction{
+            .type = .quarantine_user,
+            .metadata = .{},
+        }).validate(),
+    );
+    try std.testing.expectError(
+        error.DurationOutOfRange,
+        (UserCommunicationDisabledAction{
+            .type = .user_communication_disabled,
+            .metadata = .{ .duration_seconds = 2_419_201 },
+        }).validate(),
+    );
+}
+
+test "target users job, avatar decoration and nameplate parse" {
+    var job = try std.json.parseFromSlice(TargetUsersJobStatusResponse, std.testing.allocator,
+        \\{"status":1,"total_users":10,"processed_users":4,"created_at":"2026-01-01T00:00:00+00:00","completed_at":null,"error_message":null}
+    , .{ .ignore_unknown_fields = true });
+    defer job.deinit();
+    try std.testing.expectEqual(TargetUsersJobStatusTypes.processing, job.value.status);
+    try std.testing.expectEqual(@as(u32, 10), job.value.total_users);
+    try std.testing.expectEqual(@as(?[]const u8, null), job.value.completed_at);
+
+    var decoration = try std.json.parseFromSlice(UserAvatarDecorationResponse, std.testing.allocator,
+        \\{"asset":"a_1234","sku_id":null}
+    , .{ .ignore_unknown_fields = true });
+    defer decoration.deinit();
+    try std.testing.expectEqual(@as(?shared.SnowflakeType, null), decoration.value.sku_id);
+
+    var nameplate = try std.json.parseFromSlice(UserNameplateResponse, std.testing.allocator,
+        \\{"sku_id":"123","asset":"nameplates/a.png","label":"","palette":"crimson"}
+    , .{ .ignore_unknown_fields = true });
+    defer nameplate.deinit();
+    try std.testing.expectEqual(shared.NameplatePalette.crimson, nameplate.value.palette);
+    try std.testing.expect(nameplate.value.sku_id != null);
+}
+
+test "widget member parses and validates its discriminator" {
+    var member = try std.json.parseFromSlice(WidgetMember, std.testing.allocator,
+        \\{"id":"1","username":"widget","discriminator":"0000","avatar":null,"status":"online","avatar_url":"https://cdn/x.png","activity":{"name":"Spotify"},"deaf":false,"mute":false,"channel_id":"2"}
+    , .{ .ignore_unknown_fields = true });
+    defer member.deinit();
+    try member.value.validate();
+    try std.testing.expect(member.value.avatar == .null);
+    try std.testing.expectEqualStrings("widget", member.value.username);
+
+    var invalid = try std.json.parseFromSlice(WidgetMember, std.testing.allocator,
+        \\{"id":"1","username":"widget","discriminator":"0001","avatar":null,"status":"online","avatar_url":"https://cdn/x.png"}
+    , .{ .ignore_unknown_fields = true });
+    defer invalid.deinit();
+    try std.testing.expectError(error.InvalidDiscriminator, invalid.value.validate());
 }
