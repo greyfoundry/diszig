@@ -19,6 +19,7 @@ pub const interactions = @import("interactions.zig");
 pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
 pub const messages = @import("messages.zig");
+pub const reactions = @import("reactions.zig");
 pub const roles = @import("roles.zig");
 pub const threads = @import("threads.zig");
 
@@ -73,6 +74,10 @@ pub const Event = union(enum) {
     thread_list_sync: threads.ThreadListSync,
     thread_member_update: threads.ThreadMemberUpdate,
     thread_members_update: threads.ThreadMembersUpdate,
+    message_reaction_add: reactions.ReactionAdd,
+    message_reaction_remove: reactions.ReactionRemove,
+    message_reaction_remove_all: reactions.ReactionRemoveAll,
+    message_reaction_remove_emoji: reactions.ReactionRemoveEmoji,
     raw: Raw,
 };
 
@@ -163,6 +168,14 @@ pub fn decode(
                 .list_sync => |sync| .{ .thread_list_sync = sync },
                 .member_update => |member| .{ .thread_member_update = member },
                 .members_update => |updated_members| .{ .thread_members_update = updated_members },
+            };
+        }
+        if (try reactions.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .add => |reaction| .{ .message_reaction_add = reaction },
+                .remove => |reaction| .{ .message_reaction_remove = reaction },
+                .remove_all => |removed| .{ .message_reaction_remove_all = removed },
+                .remove_emoji => |removed| .{ .message_reaction_remove_emoji = removed },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };
