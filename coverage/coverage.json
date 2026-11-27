@@ -662,6 +662,25 @@
       "docs": ["docs/architecture.mdx"],
       "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
       "live_verified": false
+    },
+    {
+      "id": "protocol.models-messages-01",
+      "kind": "model-batch",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/protocol/models/messages.zig",
+        "packages/protocol/models/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/protocol/models/messages.zig",
+        "tests/protocol/models/messages.zig"
+      ],
+      "docs": ["docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
+      "live_verified": false
     }
   ]
 }

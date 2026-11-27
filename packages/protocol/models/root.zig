@@ -8,3 +8,4 @@ pub const channels = @import("channels.zig");
 pub const commands = @import("commands.zig");
 pub const components = @import("components.zig");
 pub const interactions = @import("interactions.zig");
+pub const messages = @import("messages.zig");
