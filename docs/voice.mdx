@@ -49,6 +49,13 @@ not a platform limitation.
   assignment. The probe exercises session creation, key packages and passthrough
   media frames. A formed MLS group, ratcheted media and live transitions require
   voice-server payloads and remain pending authorized live verification.
+- **Audio pipeline**: `packages/voice/audio.zig` provides 48 kHz stereo 20 ms
+  frame geometry, a 20 ms pacer with bounded catch-up, speaking/silence policy,
+  cancellation, a fixed-capacity jitter buffer with explicit loss policy,
+  receive consent, and encoder/decoder vtables. The default build links no codec;
+  tests use a deterministic fake. Native Opus is not integrated yet.
+- `examples/voice.zig` demonstrates the isolated pipeline with no socket, audio
+  device or codec dependency.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -108,8 +115,10 @@ are shipped under `packages/voice/licenses/` and summarised in
    encryptor/decryptor handles through libdave. Live MLS group transitions need
    authorization and real voice-server payloads. MLS state is never
    reimplemented in Zig.
-7. **Audio**: Opus encode/decode with explicit ownership, pacing, buffering and
-   allocation-failure tests; receiving audio only where documented.
+7. **Audio** (pipeline scaffolding done): pacing, bounded jitter/loss policy,
+   cancellation, consent and codec vtables with deterministic tests. Remaining:
+   pin and link official Opus, then ratcheted media send/receive with explicit
+   ownership and allocation-failure tests.
 8. **Recovery and packaging**: connection recovery tests, per-target consumer
    builds, reproducible artifact fetching, shutdown/join guarantees and
    resource bounds.

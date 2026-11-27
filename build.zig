@@ -742,6 +742,20 @@ pub fn build(b: *std.Build) void {
     examples_step.dependOn(&b.addInstallArtifact(oauth2_example, .{}).step);
     check_step.dependOn(&oauth2_example.step);
 
+    const voice_example = b.addExecutable(.{
+        .name = "voice_example",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/voice.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    examples_step.dependOn(&b.addInstallArtifact(voice_example, .{}).step);
+    check_step.dependOn(&voice_example.step);
+
     const probe_step = b.step("transport-probe", "Build the local REST transport probe");
     const probe = b.addExecutable(.{
         .name = "transport_probe",
