@@ -41,6 +41,15 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const builders = b.addModule("builders", .{
+        .root_source_file = b.path("packages/builders/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "protocol", .module = protocol },
+        },
+    });
+
     const zlib = addZlib(b, target, optimize);
     websocket.linkLibrary(zlib.lib);
     websocket.addIncludePath(zlib.include);
@@ -59,6 +68,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "protocol", .module = protocol },
             .{ .name = "rest", .module = rest },
             .{ .name = "gateway", .module = gateway },
+            .{ .name = "builders", .module = builders },
         },
     });
 
@@ -346,6 +356,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_step.dependOn(&b.addRunArtifact(public_message_event_tests).step);
+
+    const public_builder_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/builders/message.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_builder_tests).step);
 
     const package_check = b.addSystemCommand(&.{ "python", "tools/check_package.py" });
     const package_self_test = b.addSystemCommand(&.{ "python", "tools/check_package.py", "--self-test" });

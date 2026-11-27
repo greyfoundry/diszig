@@ -1,0 +1,68 @@
+---
+title: 'Message builders'
+---
+
+`diszig.builders` validates message, embed, mention and attachment payloads
+before they reach the REST transport. Builders borrow caller strings and do not
+allocate; `toOwnedSlice` produces an owned payload the caller frees.
+
+## Message limits
+
+| Item | Limit |
+| --- | --- |
+| Content | 2000 characters |
+| Embeds | 10 per message |
+| Combined embed characters | 6000 across the message |
+| Attachments | 10 per message |
+
+`Message.validate` checks these before serialization. A too-large combined embed
+payload returns `error.TotalEmbedsTooLong`; a single embed over its own limit
+returns the specific `embed` error.
+
+## Content and edit semantics
+
+`content` is a `Presence`:
+
+- `.absent` omits the field, so an edit leaves the existing content unchanged.
+- `.null` serializes `"content":null`.
+- `.value` sets the text.
+
+No default is applied. The caller chooses which state to send.
+
+## Allowed mentions
+
+`allowed_mentions` is optional. Leaving it null omits the field and lets Discord
+use its default parsing. Setting it serializes an explicit object:
+
+```json
+{"parse":[],"roles":["42"],"users":[],"replied_user":false}
+```
+
+An empty `parse` array suppresses all parsing. `roles`/`users` are typed
+snowflakes. The builder never silently adds or removes a mention rule.
+
+`message.parseMention` recognizes `<@id>`, `<@!id>`, `<@&id>`, `<#id>`,
+`@everyone` and `@here`; `scanMentions` returns the mentions in a content string.
+
+## Attachments
+
+- An upload sets `filename`; the multipart layer assigns the wire id.
+- Retaining an existing attachment on edit sets `id` and may omit `filename`.
+- An attachment with neither is rejected.
+- Duplicate upload filenames are rejected.
+- `attachment://name` references in embed images, thumbnails, author icons and
+  footer icons must match an attachment filename; otherwise validation returns
+  `error.UnknownAttachmentReference`.
+
+## Embeds
+
+Field limits follow the documented table: title 256, description 4096, 25
+fields, field name 256, field value 1024, footer text 2048 and author name 256.
+The combined character limit is checked at the message level. Timestamps are
+validated with the shared ISO8601 parser.
+
+## Flags
+
+`builders.message.flags` exposes `suppress_embeds`, `ephemeral` and
+`suppress_notifications`. Flags are an explicit `u64`; the builder does not add
+any flag implicitly.

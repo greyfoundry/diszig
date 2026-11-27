@@ -509,6 +509,26 @@
       "docs": ["docs/gateway.mdx", "docs/status.mdx"],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L1130",
       "live_verified": false
+    },
+    {
+      "id": "builders.message",
+      "kind": "builder",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/builders/message.zig",
+        "packages/builders/embed.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/builders/message.zig",
+        "packages/builders/embed.zig",
+        "tests/builders/message.zig"
+      ],
+      "docs": ["docs/builders.mdx", "docs/architecture.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/resources/message.mdx#L628",
+      "live_verified": false
     }
   ]
 }
