@@ -9,3 +9,4 @@ pub const commands = @import("commands.zig");
 pub const components = @import("components.zig");
 pub const interactions = @import("interactions.zig");
 pub const messages = @import("messages.zig");
+pub const monetization = @import("monetization.zig");
