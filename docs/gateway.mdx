@@ -168,9 +168,11 @@ the event is returned; they never wait for application callbacks.
 CHANNEL_PINS_UPDATE), APPLICATION_COMMAND_PERMISSIONS_UPDATE, the first guild
 batch (GUILD_CREATE, GUILD_UPDATE, GUILD_DELETE, GUILD_AUDIT_LOG_ENTRY_CREATE,
 GUILD_BAN_ADD, GUILD_BAN_REMOVE), the integration batch (INTEGRATION_CREATE,
-INTEGRATION_UPDATE, INTEGRATION_DELETE), INTERACTION_CREATE and the invite batch
-(INVITE_CREATE, INVITE_DELETE). Every other event is `.raw` with the original
-gateway envelope; EVENT-* packages add typed payloads.
+INTEGRATION_UPDATE, INTEGRATION_DELETE), INTERACTION_CREATE, the invite batch
+(INVITE_CREATE, INVITE_DELETE) and the member batch (GUILD_MEMBER_ADD,
+GUILD_MEMBER_UPDATE, GUILD_MEMBER_REMOVE, GUILD_MEMBERS_CHUNK). Every other
+event is `.raw` with the original gateway envelope; EVENT-* packages add typed
+payloads.
 
 Typed channel payloads use `Presence` for nullable fields: an omitted update
 field is absent and does not clear it, while an explicit null is a clear.
@@ -186,6 +188,12 @@ a continuation secret retained only in the callback arena; it must not be logged
 or stored. Interaction `data`, `message`, `entitlements` and authorizing owners
 are action-specific and remain raw JSON in this batch; MODEL-INTERACTIONS-*
 types them.
+
+Member events (GUILD_MEMBER_ADD/UPDATE/REMOVE and GUILD_MEMBERS_CHUNK) use the
+shared member model: user, nick/avatar/banner, roles, joined_at, premium_since,
+deaf/mute/flags, pending, permissions and timeout. The add/update payloads are
+flat member fields plus `guild_id`, which the decoder parses separately. Chunk
+presences remain raw for this batch.
 
 ## Send operations and intents
 

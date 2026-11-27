@@ -28,18 +28,7 @@ pub const ContextType = enum(u8) {
     private_channel = 2,
 };
 
-pub const Member = struct {
-    user: shared.User,
-    nick: json.Presence([]const u8) = .absent,
-    roles: []Snowflake,
-    joined_at: []const u8,
-    premium_since: json.Presence([]const u8) = .absent,
-    deaf: ?bool = null,
-    mute: ?bool = null,
-    flags: ?u64 = null,
-    pending: ?bool = null,
-    permissions: ?shared.PermissionBits = null,
-};
+pub const Member = shared.Member;
 
 pub const Interaction = struct {
     id: Snowflake,
