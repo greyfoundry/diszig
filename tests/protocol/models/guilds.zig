@@ -29,6 +29,15 @@ test "every listed schema is exported" {
     _ = guilds.GuildScheduledEventUserResponses;
     _ = guilds.GuildTemplateRoleColorsResponse;
     _ = guilds.IntegrationExpireBehaviorTypes;
+    _ = guilds.IntegrationExpireGracePeriodTypes;
+    _ = guilds.IntegrationTypes;
+    _ = guilds.LobbyGuildInviteResponse;
+    _ = guilds.OnboardingPromptType;
+    _ = guilds.PremiumGuildTiers;
+    _ = guilds.RoleColors;
+    _ = guilds.TeamMemberRoles;
+    _ = guilds.UnbanUserFromGuildRequest;
+    _ = guilds.UpdateApplicationUserRoleConnectionRequest;
 }
 
 test "enum values match the pinned schema" {
@@ -112,5 +121,47 @@ test "allocation failure while parsing owned change fields is leak free" {
         std.testing.allocator,
         parseChange,
         .{"{\"key\":\"name\",\"new_value\":\"x\",\"old_value\":\"y\"}"},
+    );
+}
+
+test "guild batch 2 exports validate" {
+    try std.testing.expectEqual(@as(u8, 14), @backingInt(guilds.IntegrationExpireGracePeriodTypes.fourteen_days));
+    try std.testing.expectEqual(@as(u8, 1), @backingInt(guilds.OnboardingPromptType.dropdown));
+    try std.testing.expectEqual(@as(u8, 2), @backingInt(guilds.PremiumGuildTiers.tier_2));
+    try std.testing.expectEqual(guilds.IntegrationTypes.discord, guilds.IntegrationTypes.parseWire("discord").?);
+    try std.testing.expectEqual(guilds.TeamMemberRoles.developer, guilds.TeamMemberRoles.parseWire("developer").?);
+
+    try (guilds.RoleColors{ .primary_color = guilds.max_role_color }).validate();
+    try std.testing.expectError(
+        error.InvalidColor,
+        (guilds.RoleColors{ .secondary_color = guilds.max_role_color + 1 }).validate(),
+    );
+
+    var invite = try std.json.parseFromSlice(guilds.LobbyGuildInviteResponse, std.testing.allocator,
+        \\{"code":"abc"}
+    , .{ .ignore_unknown_fields = true });
+    defer invite.deinit();
+    try std.testing.expectEqualStrings("abc", invite.value.code);
+
+    try (guilds.UpdateApplicationUserRoleConnectionRequest{
+        .platform_name = "steam",
+        .platform_username = "player",
+    }).validate();
+}
+
+fn parseRoleConnection(allocator: std.mem.Allocator, payload: []const u8) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const value = try std.json.parseFromSliceLeaky(guilds.UpdateApplicationUserRoleConnectionRequest, arena.allocator(), payload, .{
+        .ignore_unknown_fields = true,
+    });
+    try value.validate();
+}
+
+test "allocation failure while parsing role connection metadata is leak free" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseRoleConnection,
+        .{"{\"platform_name\":\"steam\",\"platform_username\":\"player\",\"metadata\":{\"a\":\"1\",\"b\":\"2\"}}"},
     );
 }

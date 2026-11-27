@@ -13,6 +13,11 @@ pub const Error = error{
     InvalidDeleteMessageSeconds,
     InvalidDeleteMessageDays,
     InvalidTimestamp,
+    InvalidColor,
+    PlatformNameTooLong,
+    PlatformUsernameTooLong,
+    TooManyMetadataEntries,
+    InvalidMetadataValue,
 };
 
 pub const ApplicationIntegrationType = enum(u8) {
@@ -301,6 +306,123 @@ pub const GuildTemplateRoleColorsResponse = struct {
     tertiary_color: ?i64 = null,
 };
 
+pub const IntegrationExpireGracePeriodTypes = enum(u8) {
+    one_day = 1,
+    three_days = 3,
+    seven_days = 7,
+    fourteen_days = 14,
+    thirty_days = 30,
+};
+
+pub const InboundIntegrationExpireGracePeriodTypes = json.InboundEnum(IntegrationExpireGracePeriodTypes);
+
+pub const IntegrationTypes = enum {
+    discord,
+    twitch,
+    youtube,
+    guild_subscription,
+
+    pub fn parseWire(text: []const u8) ?IntegrationTypes {
+        inline for (@typeInfo(IntegrationTypes).@"enum".field_values) |enum_value| {
+            const tag: IntegrationTypes = @fromBackingInt(@intCast(enum_value));
+            if (std.mem.eql(u8, @tagName(tag), text)) return tag;
+        }
+        return null;
+    }
+};
+
+pub const InboundIntegrationTypes = json.InboundStringEnum(IntegrationTypes);
+
+pub const LobbyGuildInviteResponse = struct {
+    code: []const u8,
+};
+
+pub const OnboardingPromptType = enum(u8) {
+    multiple_choice = 0,
+    dropdown = 1,
+};
+
+pub const InboundOnboardingPromptType = json.InboundEnum(OnboardingPromptType);
+
+pub const PremiumGuildTiers = enum(u8) {
+    none = 0,
+    tier_1 = 1,
+    tier_2 = 2,
+    tier_3 = 3,
+};
+
+pub const InboundPremiumGuildTiers = json.InboundEnum(PremiumGuildTiers);
+
+pub const max_role_color: i64 = 0xFF_FF_FF;
+
+/// Tri-color role gradient. Every channel is nullable; present values must be
+/// within the documented 24-bit RGB range.
+pub const RoleColors = struct {
+    primary_color: ?i64 = null,
+    secondary_color: ?i64 = null,
+    tertiary_color: ?i64 = null,
+
+    pub fn validate(self: RoleColors) Error!void {
+        try validateColor(self.primary_color);
+        try validateColor(self.secondary_color);
+        try validateColor(self.tertiary_color);
+    }
+};
+
+fn validateColor(value: ?i64) Error!void {
+    if (value) |color| {
+        if (color < 0 or color > max_role_color) return error.InvalidColor;
+    }
+}
+
+pub const TeamMemberRoles = enum {
+    admin,
+    developer,
+    read_only,
+
+    pub fn parseWire(text: []const u8) ?TeamMemberRoles {
+        inline for (@typeInfo(TeamMemberRoles).@"enum".field_values) |enum_value| {
+            const tag: TeamMemberRoles = @fromBackingInt(@intCast(enum_value));
+            if (std.mem.eql(u8, @tagName(tag), text)) return tag;
+        }
+        return null;
+    }
+};
+
+pub const InboundTeamMemberRoles = json.InboundStringEnum(TeamMemberRoles);
+
+/// The pinned schema has no properties. The audit-log reason is still required
+/// by the endpoint and travels separately.
+pub const UnbanUserFromGuildRequest = struct {};
+
+pub const UpdateApplicationUserRoleConnectionRequest = struct {
+    platform_name: ?[]const u8 = null,
+    platform_username: ?[]const u8 = null,
+    /// At most five string values, each 1-100 characters. Kept as a JSON object
+    /// because the schema puts no fixed key set on it.
+    metadata: ?std.json.Value = null,
+
+    pub fn validate(self: UpdateApplicationUserRoleConnectionRequest) Error!void {
+        if (self.platform_name) |value| {
+            if (value.len > 50) return error.PlatformNameTooLong;
+        }
+        if (self.platform_username) |value| {
+            if (value.len > 100) return error.PlatformUsernameTooLong;
+        }
+        if (self.metadata) |metadata| {
+            if (metadata != .object) return error.InvalidMetadataValue;
+            const map = metadata.object;
+            if (map.count() > 5) return error.TooManyMetadataEntries;
+            var iterator = map.iterator();
+            while (iterator.next()) |entry| {
+                const value = entry.value_ptr.*;
+                if (value != .string) return error.InvalidMetadataValue;
+                if (value.string.len == 0 or value.string.len > 100) return error.InvalidMetadataValue;
+            }
+        }
+    }
+};
+
 pub const GuildScheduledEventExceptionCreateRequest = struct {
     scheduled_start_time: ?[]const u8 = null,
     scheduled_end_time: ?[]const u8 = null,
@@ -398,4 +520,56 @@ test "role colors and connection response parse" {
     , .{ .ignore_unknown_fields = true });
     defer connection.deinit();
     try std.testing.expectEqualStrings("steam", connection.value.platform_name);
+}
+
+test "guild batch 2 enums and wire strings" {
+    try std.testing.expectEqual(@as(u8, 30), @backingInt(IntegrationExpireGracePeriodTypes.thirty_days));
+    try std.testing.expectEqual(@as(u8, 0), @backingInt(OnboardingPromptType.multiple_choice));
+    try std.testing.expectEqual(@as(u8, 3), @backingInt(PremiumGuildTiers.tier_3));
+    try std.testing.expectEqualStrings("guild_subscription", @tagName(IntegrationTypes.guild_subscription));
+    try std.testing.expectEqualStrings("read_only", @tagName(TeamMemberRoles.read_only));
+    try std.testing.expectEqual(IntegrationTypes.youtube, IntegrationTypes.parseWire("youtube").?);
+    try std.testing.expectEqual(TeamMemberRoles.admin, TeamMemberRoles.parseWire("admin").?);
+    try std.testing.expectEqual(@as(?TeamMemberRoles, null), TeamMemberRoles.parseWire("Admin"));
+}
+
+test "role colors and role connection request validation" {
+    try (RoleColors{ .primary_color = 0, .secondary_color = max_role_color }).validate();
+    try std.testing.expectError(error.InvalidColor, (RoleColors{ .primary_color = -1 }).validate());
+    try std.testing.expectError(error.InvalidColor, (RoleColors{ .tertiary_color = max_role_color + 1 }).validate());
+
+    try (UpdateApplicationUserRoleConnectionRequest{
+        .platform_name = "steam",
+        .platform_username = "user",
+    }).validate();
+    const long_name: [51]u8 = @splat('n');
+    try std.testing.expectError(
+        error.PlatformNameTooLong,
+        (UpdateApplicationUserRoleConnectionRequest{ .platform_name = &long_name }).validate(),
+    );
+    const long_username: [101]u8 = @splat('u');
+    try std.testing.expectError(
+        error.PlatformUsernameTooLong,
+        (UpdateApplicationUserRoleConnectionRequest{ .platform_username = &long_username }).validate(),
+    );
+}
+
+test "role connection metadata is bounded to five string values" {
+    var ok = try std.json.parseFromSlice(UpdateApplicationUserRoleConnectionRequest, std.testing.allocator,
+        \\{"platform_name":"steam","metadata":{"a":"1","b":"2","c":"3","d":"4","e":"5"}}
+    , .{ .ignore_unknown_fields = true });
+    defer ok.deinit();
+    try ok.value.validate();
+
+    var too_many = try std.json.parseFromSlice(UpdateApplicationUserRoleConnectionRequest, std.testing.allocator,
+        \\{"metadata":{"a":"1","b":"2","c":"3","d":"4","e":"5","f":"6"}}
+    , .{ .ignore_unknown_fields = true });
+    defer too_many.deinit();
+    try std.testing.expectError(error.TooManyMetadataEntries, too_many.value.validate());
+
+    var empty_value = try std.json.parseFromSlice(UpdateApplicationUserRoleConnectionRequest, std.testing.allocator,
+        \\{"metadata":{"a":""}}
+    , .{ .ignore_unknown_fields = true });
+    defer empty_value.deinit();
+    try std.testing.expectError(error.InvalidMetadataValue, empty_value.value.validate());
 }
