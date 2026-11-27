@@ -50,8 +50,8 @@ test "integration delete carries the optional application id" {
 test "unrelated events still fall back to raw" {
     const event = try parse(
         std.testing.allocator,
-        "MESSAGE_CREATE",
-        "{\"op\":0,\"t\":\"MESSAGE_CREATE\",\"d\":{\"id\":\"1\"}}",
+        "GUILD_ROLE_CREATE",
+        "{\"op\":0,\"t\":\"GUILD_ROLE_CREATE\",\"d\":{\"guild_id\":\"1\"}}",
     );
     try std.testing.expect(event == .raw);
 }

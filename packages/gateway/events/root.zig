@@ -18,6 +18,7 @@ pub const integrations = @import("integrations.zig");
 pub const interactions = @import("interactions.zig");
 pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
+pub const messages = @import("messages.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -57,6 +58,10 @@ pub const Event = union(enum) {
     guild_member_update: members.MemberEvent,
     guild_member_remove: members.MemberRemove,
     guild_members_chunk: members.MembersChunk,
+    message_create: messages.Message,
+    message_update: messages.Message,
+    message_delete: messages.MessageDelete,
+    message_delete_bulk: messages.MessageDeleteBulk,
     raw: Raw,
 };
 
@@ -122,6 +127,14 @@ pub fn decode(
                 .update => |member| .{ .guild_member_update = member },
                 .remove => |removed| .{ .guild_member_remove = removed },
                 .chunk => |chunk| .{ .guild_members_chunk = chunk },
+            };
+        }
+        if (try messages.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |message| .{ .message_create = message },
+                .update => |message| .{ .message_update = message },
+                .delete => |deleted| .{ .message_delete = deleted },
+                .delete_bulk => |bulk| .{ .message_delete_bulk = bulk },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };

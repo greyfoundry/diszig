@@ -106,11 +106,11 @@ test "channel info and pins update are typed" {
 test "an unrelated event still falls back to raw" {
     const event = try parse(
         std.testing.allocator,
-        "MESSAGE_CREATE",
-        "{\"op\":0,\"t\":\"MESSAGE_CREATE\",\"d\":{\"id\":\"1\"}}",
+        "GUILD_ROLE_CREATE",
+        "{\"op\":0,\"t\":\"GUILD_ROLE_CREATE\",\"d\":{\"guild_id\":\"1\"}}",
     );
     try std.testing.expect(event == .raw);
-    try std.testing.expectEqualStrings("MESSAGE_CREATE", event.raw.name);
+    try std.testing.expectEqualStrings("GUILD_ROLE_CREATE", event.raw.name);
 }
 
 fn parseWithArena(allocator: std.mem.Allocator, envelope: []const u8) !void {

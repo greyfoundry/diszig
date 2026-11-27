@@ -170,9 +170,10 @@ batch (GUILD_CREATE, GUILD_UPDATE, GUILD_DELETE, GUILD_AUDIT_LOG_ENTRY_CREATE,
 GUILD_BAN_ADD, GUILD_BAN_REMOVE), the integration batch (INTEGRATION_CREATE,
 INTEGRATION_UPDATE, INTEGRATION_DELETE), INTERACTION_CREATE, the invite batch
 (INVITE_CREATE, INVITE_DELETE) and the member batch (GUILD_MEMBER_ADD,
-GUILD_MEMBER_UPDATE, GUILD_MEMBER_REMOVE, GUILD_MEMBERS_CHUNK). Every other
-event is `.raw` with the original gateway envelope; EVENT-* packages add typed
-payloads.
+GUILD_MEMBER_UPDATE, GUILD_MEMBER_REMOVE, GUILD_MEMBERS_CHUNK) and the message
+batch (MESSAGE_CREATE, MESSAGE_UPDATE, MESSAGE_DELETE, MESSAGE_DELETE_BULK).
+Every other event is `.raw` with the original gateway envelope; EVENT-* packages
+add typed payloads.
 
 Typed channel payloads use `Presence` for nullable fields: an omitted update
 field is absent and does not clear it, while an explicit null is a clear.
@@ -194,6 +195,12 @@ shared member model: user, nick/avatar/banner, roles, joined_at, premium_since,
 deaf/mute/flags, pending, permissions and timeout. The add/update payloads are
 flat member fields plus `guild_id`, which the decoder parses separately. Chunk
 presences remain raw for this batch.
+
+Message events share a batch-1 `Message` model. `MESSAGE_UPDATE` is a partial
+message: `Presence` fields distinguish an omitted update from an explicit null.
+Attachments are typed; embeds, components, reactions, references, polls and
+interaction data remain raw. `MESSAGE_DELETE` and `MESSAGE_DELETE_BULK` are
+separate typed payloads.
 
 ## Send operations and intents
 
