@@ -11,6 +11,8 @@ test "every listed schema is exported" {
     _ = resources.ScheduledEventUserCountResponse;
     _ = resources.StickerFormatTypes;
     _ = resources.StickerTypes;
+    _ = resources.SettingsEmojiResponse;
+    _ = resources.StandardStickerResponse;
 }
 
 test "enum values match the pinned schema" {
@@ -76,5 +78,52 @@ test "allocation failure while parsing the exception map is leak free" {
         std.testing.allocator,
         parseCounts,
         .{"{\"guild_scheduled_event_count\":1,\"guild_scheduled_event_exception_counts\":{\"1\":2}}"},
+    );
+}
+
+test "settings emoji and standard sticker contracts" {
+    var emoji = try std.json.parseFromSlice(resources.SettingsEmojiResponse, std.testing.allocator,
+        \\{"id":"1","name":"wave","animated":true}
+    , .{ .ignore_unknown_fields = true });
+    defer emoji.deinit();
+    try std.testing.expect(emoji.value.id != null);
+    try std.testing.expect(emoji.value.animated);
+
+    var sticker = try std.json.parseFromSlice(resources.StandardStickerResponse, std.testing.allocator,
+        \\{"id":"1","name":"wave","tags":"wave","type":1,"format_type":2,"description":"d","pack_id":"2","sort_value":0}
+    , .{ .ignore_unknown_fields = true });
+    defer sticker.deinit();
+    try sticker.value.validate();
+    try std.testing.expectEqual(resources.StickerFormatTypes.apng, sticker.value.format_type.?);
+
+    try std.testing.expectError(
+        error.InvalidStickerType,
+        (resources.StandardStickerResponse{
+            .id = sticker.value.id,
+            .name = "n",
+            .tags = "t",
+            .type = .guild,
+            .format_type = null,
+            .description = null,
+            .pack_id = sticker.value.pack_id,
+            .sort_value = 0,
+        }).validate(),
+    );
+}
+
+fn parseSticker(allocator: std.mem.Allocator, payload: []const u8) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const value = try std.json.parseFromSliceLeaky(resources.StandardStickerResponse, arena.allocator(), payload, .{
+        .ignore_unknown_fields = true,
+    });
+    try value.validate();
+}
+
+test "allocation failure while parsing a standard sticker is leak free" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseSticker,
+        .{"{\"id\":\"1\",\"name\":\"wave\",\"tags\":\"wave\",\"type\":1,\"format_type\":1,\"description\":null,\"pack_id\":\"2\",\"sort_value\":0}"},
     );
 }
