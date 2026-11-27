@@ -25,6 +25,7 @@ const std = @import("std");
 
 pub const gateway = @import("gateway.zig");
 pub const audio = @import("audio.zig");
+pub const media = @import("media.zig");
 pub const recovery = @import("recovery.zig");
 pub const rtp = @import("rtp.zig");
 pub const session = @import("session.zig");

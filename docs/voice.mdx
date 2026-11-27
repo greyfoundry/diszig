@@ -72,6 +72,10 @@ not a platform limitation.
 - **UDP socket**: `packages/voice/udp.zig` also provides a bound `UdpSocket`
   with send/receive timeouts and a bounded discovery exchange. A loopback test
   covers real send/receive and response parsing; no Discord server is contacted.
+- **Media path**: `packages/voice/media.zig` wraps encoded Opus frames in the RTP
+  header and `rtpsize` AEAD, advancing sequence/timestamp with unsigned wrapping.
+  Receive authenticates and decrypts before exposing payload; tampering and a
+  wrong key fail closed.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -128,10 +132,10 @@ The optional Opus source is pinned separately; its licence ships as
    resume, close classification and bounded UDP discovery. Remaining: binding the
    WebSocket transport and the full send/receive loop. Stage channels can connect
    without the E2EE media path.
-5. **Transport primitives** (done): discovery framing with SSRC binding, RTP
-   header parsing with CSRC/extension length, and AES-GCM/XChaCha rtpsize
-   encryption with key rotation. Remaining: the UDP socket, select-protocol
-   once per session, RTCP, pacing and bounded jitter buffers.
+5. **Transport and media** (done non-live): discovery framing with SSRC binding,
+   RTP header parsing with CSRC/extension length, AES-GCM/XChaCha rtpsize
+   encryption with key rotation, a bounded UDP socket, and encoded-frame media
+   wiring through RTP/AEAD. Remaining: WebSocket binding, RTCP and live pacing.
 6. **DAVE session lifecycle** (protocol state machine done): external sender,
    proposals, commit/welcome, epoch transitions, key ratchets and
    encryptor/decryptor handles through libdave. Live MLS group transitions need
