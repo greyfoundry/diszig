@@ -20,6 +20,7 @@ pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
 pub const messages = @import("messages.zig");
 pub const roles = @import("roles.zig");
+pub const threads = @import("threads.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -66,6 +67,12 @@ pub const Event = union(enum) {
     guild_role_create: roles.RoleCreate,
     guild_role_update: roles.RoleUpdate,
     guild_role_delete: roles.RoleDelete,
+    thread_create: threads.ThreadCreate,
+    thread_update: threads.ThreadUpdate,
+    thread_delete: threads.ThreadDelete,
+    thread_list_sync: threads.ThreadListSync,
+    thread_member_update: threads.ThreadMemberUpdate,
+    thread_members_update: threads.ThreadMembersUpdate,
     raw: Raw,
 };
 
@@ -146,6 +153,16 @@ pub fn decode(
                 .create => |role| .{ .guild_role_create = role },
                 .update => |role| .{ .guild_role_update = role },
                 .delete => |deleted| .{ .guild_role_delete = deleted },
+            };
+        }
+        if (try threads.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |thread| .{ .thread_create = thread },
+                .update => |thread| .{ .thread_update = thread },
+                .delete => |deleted| .{ .thread_delete = deleted },
+                .list_sync => |sync| .{ .thread_list_sync = sync },
+                .member_update => |member| .{ .thread_member_update = member },
+                .members_update => |updated_members| .{ .thread_members_update = updated_members },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };
