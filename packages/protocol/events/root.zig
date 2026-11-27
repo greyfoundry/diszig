@@ -8,4 +8,5 @@ pub const interactions = @import("interactions.zig");
 pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
 pub const messages = @import("messages.zig");
+pub const roles = @import("roles.zig");
 pub const shared = @import("shared.zig");

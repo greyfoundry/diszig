@@ -19,6 +19,7 @@ pub const interactions = @import("interactions.zig");
 pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
 pub const messages = @import("messages.zig");
+pub const roles = @import("roles.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -62,6 +63,9 @@ pub const Event = union(enum) {
     message_update: messages.Message,
     message_delete: messages.MessageDelete,
     message_delete_bulk: messages.MessageDeleteBulk,
+    guild_role_create: roles.RoleCreate,
+    guild_role_update: roles.RoleUpdate,
+    guild_role_delete: roles.RoleDelete,
     raw: Raw,
 };
 
@@ -135,6 +139,13 @@ pub fn decode(
                 .update => |message| .{ .message_update = message },
                 .delete => |deleted| .{ .message_delete = deleted },
                 .delete_bulk => |bulk| .{ .message_delete_bulk = bulk },
+            };
+        }
+        if (try roles.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |role| .{ .guild_role_create = role },
+                .update => |role| .{ .guild_role_update = role },
+                .delete => |deleted| .{ .guild_role_delete = deleted },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };
