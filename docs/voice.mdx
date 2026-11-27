@@ -60,6 +60,10 @@ not a platform limitation.
   build.
 - `examples/voice.zig` demonstrates the isolated pipeline with no socket, audio
   device or codec dependency.
+- **Recovery policy**: `packages/voice/recovery.zig` maps voice close codes to a
+  finite resume/reconnect budget with capped exponential backoff. Fatal codes
+  stop immediately; unknown codes are bounded reconnects; a successful
+  Ready/Resumed clears the budgets.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -126,9 +130,9 @@ The optional Opus source is pinned separately; its licence ships as
 7. **Audio** (done non-live): pacing, bounded jitter/loss policy, cancellation,
    consent and codec vtables, plus optional native Opus via the pinned official
    sources. Remaining: ratcheted media send/receive through RTP and live audio.
-8. **Recovery and packaging**: connection recovery tests, per-target consumer
-   builds, reproducible artifact fetching, shutdown/join guarantees and
-   resource bounds.
+8. **Recovery and packaging** (recovery policy done): finite resume/reconnect
+   budgets with backoff and fatal-stop rules. Remaining: per-target consumer
+   builds, shutdown/join guarantees and socket integration.
 9. **Verification**: deterministic protocol/encryption fixtures first; live
    voice checks only with explicit authorization and dated evidence. No
    operational voice claim before that.
@@ -151,3 +155,28 @@ if (voice.isAvailable()) {
 and the missing transport. `voice.documented_gateway_version` is 8 and
 `voice.encryption_modes` lists the two current AEAD modes. `voice.libdave_release`
 is `v1.3.0/cpp`.
+
+## Authorized live verification (post-beta)
+
+No live voice check has been recorded. When authorized, run these against a
+disposable guild and channel and attach dated evidence:
+
+1. **Join**: Gateway voice-state update, voice Identify, Ready, IP discovery,
+   one Select Protocol, Session Description. Confirm the close code is not 4017
+   and that the negotiated mode is one of the two current AEAD modes.
+2. **DAVE**: capture opcode 25 external sender, 27 proposals, 29/30 commit or
+   welcome, 23 ready and 22 execute. Record epoch authenticators and confirm
+   they agree with a second client.
+3. **Send**: speak a short Opus frame, verify RTP sequence/timestamp/SSRC,
+   AEAD trailer and that a listening client decodes it.
+4. **Receive**: confirm consent, jitter ordering under loss, and that the
+   decoder output is bounded; no recording is written.
+5. **Recovery**: force a close (4015 and a fatal code), confirm resume stops at
+   the budget, fatal codes do not reconnect, and budgets clear after Resumed.
+6. **Stage channel**: confirm stage connection behaviour with the documented
+   E2EE exemption.
+
+Record the date, authorization reference, exact artifact, guild/channel IDs
+(redacted as needed), close codes, epoch authenticators and pass/fail per item.
+Do not mark voice operational before this pass.
+
