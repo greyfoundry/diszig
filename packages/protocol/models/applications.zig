@@ -123,6 +123,21 @@ pub const OAuth2Scopes = enum {
         }
         return null;
     }
+
+    /// Scopes are dotted strings, so the default enum tag parser cannot be
+    /// used. JSON input goes through the explicit wire mapping.
+    pub fn jsonParse(
+        allocator: std.mem.Allocator,
+        source: anytype,
+        options: std.json.ParseOptions,
+    ) !OAuth2Scopes {
+        const text = try std.json.innerParse([]const u8, allocator, source, options);
+        return parseWire(text) orelse error.InvalidEnumTag;
+    }
+
+    pub fn jsonStringify(self: OAuth2Scopes, jw: anytype) !void {
+        try jw.write(self.wire());
+    }
 };
 
 pub const InboundOAuth2Scopes = struct {
@@ -139,6 +154,48 @@ pub const InboundOAuth2Scopes = struct {
     pub fn known(self: InboundOAuth2Scopes) ?OAuth2Scopes {
         return OAuth2Scopes.parseWire(self.raw);
     }
+};
+
+pub const Error = error{
+    EmptyScopes,
+    DuplicateScope,
+    ScopeNotInstallable,
+    PermissionsTooLarge,
+};
+
+/// Highest install-permission bitmask the pinned schema allows.
+pub const max_install_permissions: u64 = 18_014_398_509_481_983;
+
+/// Default install link parameters. Only the two installation scopes are
+/// allowed, and the list must be non-empty and duplicate free.
+pub const ApplicationOAuth2InstallParams = struct {
+    scopes: ?[]const OAuth2Scopes = null,
+    permissions: ?u64 = null,
+
+    pub fn validate(self: ApplicationOAuth2InstallParams) Error!void {
+        if (self.scopes) |scopes| {
+            if (scopes.len == 0) return error.EmptyScopes;
+            for (scopes, 0..) |scope, index| {
+                if (scope != .bot and scope != .applications_commands) return error.ScopeNotInstallable;
+                for (scopes[0..index]) |earlier| {
+                    if (earlier == scope) return error.DuplicateScope;
+                }
+            }
+        }
+        if (self.permissions) |permissions| {
+            if (permissions > max_install_permissions) return error.PermissionsTooLarge;
+        }
+    }
+};
+
+pub const ApplicationOAuth2InstallParamsResponse = struct {
+    scopes: []const OAuth2Scopes,
+    /// Decimal permission bitmask; the response schema types it as a string.
+    permissions: []const u8,
+};
+
+pub const OAuth2GetKeys = struct {
+    keys: []const OAuth2Key,
 };
 
 test "application enums and wire scopes" {
@@ -174,4 +231,49 @@ test "unknown inbound scope is retained" {
     defer parsed.deinit();
     try std.testing.expectEqual(@as(?OAuth2Scopes, null), parsed.value.known());
     try std.testing.expectEqualStrings("future.scope", parsed.value.raw);
+}
+
+test "install params restrict scopes and permissions" {
+    try (ApplicationOAuth2InstallParams{
+        .scopes = &.{ .applications_commands, .bot },
+        .permissions = max_install_permissions,
+    }).validate();
+    try (ApplicationOAuth2InstallParams{ .scopes = null, .permissions = null }).validate();
+
+    try std.testing.expectError(
+        error.EmptyScopes,
+        (ApplicationOAuth2InstallParams{ .scopes = &.{} }).validate(),
+    );
+    try std.testing.expectError(
+        error.DuplicateScope,
+        (ApplicationOAuth2InstallParams{ .scopes = &.{ .bot, .bot } }).validate(),
+    );
+    try std.testing.expectError(
+        error.ScopeNotInstallable,
+        (ApplicationOAuth2InstallParams{ .scopes = &.{.identify} }).validate(),
+    );
+    try std.testing.expectError(
+        error.PermissionsTooLarge,
+        (ApplicationOAuth2InstallParams{ .permissions = max_install_permissions + 1 }).validate(),
+    );
+}
+
+test "install params response and key list parse" {
+    var params = try std.json.parseFromSlice(ApplicationOAuth2InstallParamsResponse, std.testing.allocator,
+        \\{"scopes":["applications.commands","bot"],"permissions":"2048"}
+    , .{ .ignore_unknown_fields = true });
+    defer params.deinit();
+    try std.testing.expectEqual(@as(usize, 2), params.value.scopes.len);
+    try std.testing.expectEqualStrings("2048", params.value.permissions);
+
+    var keys = try std.json.parseFromSlice(OAuth2GetKeys, std.testing.allocator,
+        \\{"keys":[{"kty":"RSA","use":"sig","kid":"1","n":"abc","e":"AQAB","alg":"RS256"}]}
+    , .{ .ignore_unknown_fields = true });
+    defer keys.deinit();
+    try std.testing.expectEqual(@as(usize, 1), keys.value.keys.len);
+
+    try std.testing.expectError(
+        error.MissingField,
+        std.json.parseFromSlice(OAuth2GetKeys, std.testing.allocator, "{}", .{ .ignore_unknown_fields = true }),
+    );
 }

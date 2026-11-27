@@ -10,6 +10,9 @@ test "every listed schema is exported" {
     _ = applications.ApplicationTypes;
     _ = applications.OAuth2Key;
     _ = applications.OAuth2Scopes;
+    _ = applications.ApplicationOAuth2InstallParams;
+    _ = applications.ApplicationOAuth2InstallParamsResponse;
+    _ = applications.OAuth2GetKeys;
 }
 
 test "enum values match the pinned schema" {
@@ -67,5 +70,45 @@ test "allocation failure while parsing key fields is leak free" {
         std.testing.allocator,
         parseKey,
         .{"{\"kty\":\"RSA\",\"use\":\"sig\",\"kid\":\"key-1\",\"n\":\"modulus\",\"e\":\"AQAB\",\"alg\":\"RS256\"}"},
+    );
+}
+
+test "install params validate scopes and permissions" {
+    try (applications.ApplicationOAuth2InstallParams{
+        .scopes = &.{ .applications_commands, .bot },
+        .permissions = 0,
+    }).validate();
+    try std.testing.expectError(
+        error.EmptyScopes,
+        (applications.ApplicationOAuth2InstallParams{ .scopes = &.{} }).validate(),
+    );
+    try std.testing.expectError(
+        error.DuplicateScope,
+        (applications.ApplicationOAuth2InstallParams{ .scopes = &.{ .bot, .bot } }).validate(),
+    );
+    try std.testing.expectError(
+        error.ScopeNotInstallable,
+        (applications.ApplicationOAuth2InstallParams{ .scopes = &.{.guilds} }).validate(),
+    );
+    try std.testing.expectError(
+        error.PermissionsTooLarge,
+        (applications.ApplicationOAuth2InstallParams{
+            .permissions = applications.max_install_permissions + 1,
+        }).validate(),
+    );
+}
+
+fn parseInstallParams(allocator: std.mem.Allocator, payload: []const u8) !void {
+    var parsed = try std.json.parseFromSlice(applications.ApplicationOAuth2InstallParamsResponse, allocator, payload, .{
+        .ignore_unknown_fields = true,
+    });
+    defer parsed.deinit();
+}
+
+test "allocation failure while parsing install params is leak free" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        parseInstallParams,
+        .{"{\"scopes\":[\"bot\",\"applications.commands\"],\"permissions\":\"2048\"}"},
     );
 }
