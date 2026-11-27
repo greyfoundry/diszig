@@ -69,6 +69,9 @@ not a platform limitation.
   Description), selects AEAD without fallback, copies the 32-byte key into owned
   storage, tracks the heartbeat interval, delegates DAVE transitions, and fails
   closed on bad keys/order. The caller still owns sockets and payload buffers.
+- **UDP socket**: `packages/voice/udp.zig` also provides a bound `UdpSocket`
+  with send/receive timeouts and a bounded discovery exchange. A loopback test
+  covers real send/receive and response parsing; no Discord server is contacted.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -120,10 +123,11 @@ The optional Opus source is pinned separately; its licence ships as
    build option, with a `voice` feature that defaults off; add the required
    NOTICE entries and a platform support matrix. Default consumers still link
    nothing voice-related.
-4. **Voice gateway transport** (session state machine done): v8 handshake,
-   Identify/Ready/Session Description, heartbeat interval, buffered resume and
-   close classification. Remaining: WebSocket/UDP socket binding. Stage channels
-   can connect without the E2EE media path.
+4. **Voice gateway transport** (state machine and UDP socket done): v8
+   handshake, Identify/Ready/Session Description, heartbeat interval, buffered
+   resume, close classification and bounded UDP discovery. Remaining: binding the
+   WebSocket transport and the full send/receive loop. Stage channels can connect
+   without the E2EE media path.
 5. **Transport primitives** (done): discovery framing with SSRC binding, RTP
    header parsing with CSRC/extension length, and AES-GCM/XChaCha rtpsize
    encryption with key rotation. Remaining: the UDP socket, select-protocol

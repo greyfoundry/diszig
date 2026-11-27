@@ -5,6 +5,7 @@
 //! The length excludes the type and length fields themselves.
 
 const std = @import("std");
+const net = std.Io.net;
 
 pub const Error = error{
     TruncatedPacket,
@@ -15,6 +16,7 @@ pub const Error = error{
     InvalidAddress,
     InvalidPort,
     BufferTooSmall,
+    TimedOut,
 };
 
 pub const request_type: u16 = 0x1;
@@ -28,6 +30,57 @@ pub const Discovery = struct {
     /// Borrowed slice into the packet, NUL terminator excluded.
     address: []const u8,
     port: u16,
+};
+
+/// Bound UDP socket for discovery and voice packets. The caller owns `io` and
+/// the destination addresses; received data borrows the caller's buffer.
+pub const UdpSocket = struct {
+    socket: net.Socket,
+
+    pub fn init(io: std.Io, bind_address: net.IpAddress) !UdpSocket {
+        return .{ .socket = try net.IpAddress.bind(&bind_address, io, .{ .mode = .dgram }) };
+    }
+
+    pub fn close(self: *UdpSocket, io: std.Io) void {
+        self.socket.close(io);
+        self.* = undefined;
+    }
+
+    pub fn send(self: *UdpSocket, io: std.Io, destination: *const net.IpAddress, packet: []const u8) !void {
+        try self.socket.send(io, destination, packet);
+    }
+
+    pub fn receiveTimeout(self: *UdpSocket, io: std.Io, buffer: []u8, timeout_ms: u32) Error!net.IncomingMessage {
+        return self.socket.receiveTimeout(io, buffer, .{ .duration = .fromMilliseconds(timeout_ms) }) catch |err| switch (err) {
+            error.Timeout => error.TimedOut,
+            else => return err,
+        };
+    }
+
+    /// Sends one discovery request and waits for a matching response. The
+    /// response slice borrows `response_buffer`; unrelated packets and SSRC
+    /// mismatches are ignored until the timeout. Bounded to four waits.
+    pub fn discover(
+        self: *UdpSocket,
+        io: std.Io,
+        destination: *const net.IpAddress,
+        ssrc: u32,
+        timeout_ms: u32,
+        request_buffer: []u8,
+        response_buffer: []u8,
+    ) !Discovery {
+        const request = try writeRequest(request_buffer, ssrc);
+        try self.send(io, destination, request);
+        var attempts: u8 = 0;
+        while (attempts < 4) : (attempts += 1) {
+            const message = self.receiveTimeout(io, response_buffer, timeout_ms) catch |err| switch (err) {
+                error.TimedOut => continue,
+                else => return err,
+            };
+            return parseResponse(message.data, ssrc) catch continue;
+        }
+        return error.TimedOut;
+    }
 };
 
 pub fn writeRequest(out: []u8, ssrc: u32) Error![]const u8 {
@@ -107,4 +160,34 @@ test "discovery rejects truncation, wrong type, wrong ssrc and bad address" {
     var zero_port = response;
     std.mem.writeInt(u16, zero_port[8 + address_len ..][0..2], 0, .big);
     try std.testing.expectError(error.InvalidPort, parseResponse(&zero_port, 1));
+}
+
+test "udp socket sends and receives discovery packets on loopback" {
+    const io = std.testing.io;
+    var receiver = try UdpSocket.init(io, try net.IpAddress.parseIp4("127.0.0.1", 0));
+    defer receiver.close(io);
+    var sender = try UdpSocket.init(io, try net.IpAddress.parseIp4("127.0.0.1", 0));
+    defer sender.close(io);
+
+    var request: [packet_len]u8 = undefined;
+    _ = try writeRequest(&request, 42);
+    try sender.send(io, &receiver.socket.address, &request);
+
+    var received: [256]u8 = undefined;
+    const got = try receiver.receiveTimeout(io, &received, 2000);
+    try std.testing.expectEqual(@as(usize, packet_len), got.data.len);
+
+    var response: [packet_len]u8 = @splat(0);
+    std.mem.writeInt(u16, response[0..2], response_type, .big);
+    std.mem.writeInt(u16, response[2..4], discovery_length, .big);
+    std.mem.writeInt(u32, response[4..8], 42, .big);
+    @memcpy(response[8..17], "127.0.0.1");
+    std.mem.writeInt(u16, response[8 + address_len ..][0..2], 5000, .big);
+    try receiver.send(io, &sender.socket.address, &response);
+
+    var reply: [256]u8 = undefined;
+    const got_reply = try sender.receiveTimeout(io, &reply, 2000);
+    const discovery = try parseResponse(got_reply.data, 42);
+    try std.testing.expectEqualStrings("127.0.0.1", discovery.address);
+    try std.testing.expectEqual(@as(u16, 5000), discovery.port);
 }
