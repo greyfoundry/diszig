@@ -114,6 +114,18 @@ pub fn build(b: *std.Build) void {
     });
     test_step.dependOn(&b.addRunArtifact(public_rest_tests).step);
 
+    const public_oauth2_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/rest/oauth2.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_oauth2_tests).step);
+
     const public_transport_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("tests/rest/transport.zig"),
@@ -578,6 +590,21 @@ pub fn build(b: *std.Build) void {
     check_step.dependOn(&transport_check.step);
     check_step.dependOn(&gateway_fixture.step);
     check_step.dependOn(&heartbeat_fixture.step);
+
+    const examples_step = b.step("examples", "Compile public examples");
+    const oauth2_example = b.addExecutable(.{
+        .name = "oauth2_example",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/oauth2.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    examples_step.dependOn(&b.addInstallArtifact(oauth2_example, .{}).step);
+    check_step.dependOn(&oauth2_example.step);
 
     const probe_step = b.step("transport-probe", "Build the local REST transport probe");
     const probe = b.addExecutable(.{

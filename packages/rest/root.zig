@@ -6,6 +6,7 @@ pub const client = @import("client.zig");
 pub const errors = @import("errors.zig");
 pub const limiter = @import("limiter.zig");
 pub const multipart = @import("multipart.zig");
+pub const oauth2 = @import("oauth2.zig");
 pub const pagination = @import("pagination.zig");
 pub const request = @import("request.zig");
 pub const retry = @import("retry.zig");

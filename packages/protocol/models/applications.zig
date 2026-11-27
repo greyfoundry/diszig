@@ -70,6 +70,9 @@ pub const OAuth2Scopes = enum {
     dm_channels_read,
     role_connections_write,
     openid,
+    identify_premium,
+    sdk_social_layer,
+    sdk_social_layer_presence,
 
     pub fn wire(self: OAuth2Scopes) []const u8 {
         return switch (self) {
@@ -107,6 +110,9 @@ pub const OAuth2Scopes = enum {
             .dm_channels_read => "dm_channels.read",
             .role_connections_write => "role_connections.write",
             .openid => "openid",
+            .identify_premium => "identify.premium",
+            .sdk_social_layer => "sdk.social_layer",
+            .sdk_social_layer_presence => "sdk.social_layer_presence",
         };
     }
 

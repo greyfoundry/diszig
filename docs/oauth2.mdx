@@ -1,0 +1,82 @@
+---
+title: OAuth2
+description: Documented authorization URL, token and revocation helpers
+---
+
+`rest.oauth2` builds Discord's documented OAuth2 requests. It does not open a
+browser, host a redirect endpoint, store tokens or make HTTP calls. The caller
+owns redirect hosting, per-request state, token storage and consent UX.
+
+## Endpoints
+
+The helpers use the official unversioned URLs from the OAuth2 guide:
+
+| Purpose | Constant | URL |
+| --- | --- | --- |
+| Authorization | `oauth2.endpoints.authorize` | `https://discord.com/oauth2/authorize` |
+| Token (code, refresh, client credentials) | `oauth2.endpoints.token` | `https://discord.com/api/oauth2/token` |
+| Revocation | `oauth2.endpoints.revoke` | `https://discord.com/api/oauth2/token/revoke` |
+| Issuer | `oauth2.endpoints.issuer` | `https://discord.com` |
+
+Token and revocation requests must use `application/x-www-form-urlencoded`
+(`oauth2.form_content_type`); JSON bodies are rejected by Discord.
+
+## Authorization URL
+
+`writeAuthorizationUrl` percent-encodes every value and validates before
+writing:
+
+- `client_id` must be digits only.
+- `scope` is space-separated on the wire, emitted as `%20`.
+- `redirect_uri` is optional because Discord falls back to the first registered
+  URI; when present it must be an absolute `http`/`https` URI without a fragment.
+- `state` is caller-generated, 1-1024 bytes, with no control characters.
+- `response_type` may be omitted only for a pure bot install (scope `bot`);
+  otherwise omission is rejected.
+- `prompt`, `integration_type`, `permissions`, `guild_id`,
+  `disable_guild_select` and S256 PKCE are supported. PKCE accepts only the
+  `S256` method and a 43-128 character base64url challenge.
+
+## Token requests
+
+`writeAuthorizationCodeBody`, `writeRefreshBody`,
+`writeClientCredentialsBody` and `writeRevokeBody` return form bodies.
+`TokenAuth` selects the documented client authentication method:
+
+- `basic` writes `Authorization: Basic base64(client_id:client_secret)` via
+  `writeBasicAuth`. The secret never appears in the body.
+- `post` sends `client_id` and `client_secret` as form fields.
+- `none` sends `client_id` only and is intended for public clients; an
+  authorization-code exchange must include the S256 `code_verifier`, and the
+  client-credentials grant rejects `none` because it requires client
+  authentication.
+
+Scope rules reject install-only scopes for client credentials, duplicates, and
+`role_connections.write` for the implicit grant, as documented. Other scope
+approval requirements remain a Discord-side decision; typing a scope does not
+grant access to it.
+
+## Responses and callback checks
+
+`parseAccessTokenResponse` rejects any non-2xx status before parsing, so an
+error body can never be treated as a successful renewal. The parsed response
+retains `access_token`, `token_type`, `expires_in`, `refresh_token`, `scope` and
+the raw `webhook` value when present.
+
+`validateCallback` compares the returned `state` with the stored value in
+constant time, and `validateIssuer` requires `https://discord.com`. Reject the
+response if either check fails before exchanging the code.
+
+## Secrets
+
+`Secret.redacted()` returns `<redacted>`. Access, refresh and ID tokens are
+credentials: do not log them, include them in error reports, or place the client
+secret in an authorization URL or a repository.
+
+## Not implemented
+
+There is no HTTP token exchange, refresh scheduling, token persistence, browser
+launch, hosted callback or OAuth2 resource endpoint yet. The implicit grant is
+buildable but discouraged by Discord outside prototypes because the token is
+returned in the URL fragment and no refresh token is issued.
+

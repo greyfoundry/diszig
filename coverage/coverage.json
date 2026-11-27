@@ -757,6 +757,26 @@
       "docs": ["docs/architecture.mdx"],
       "source": "https://github.com/discord/discord-api-spec/blob/654230017d4f5ee3e6a59a769ffc40cf61001e3f/specs/openapi.json",
       "live_verified": false
+    },
+    {
+      "id": "rest.oauth2-01",
+      "kind": "oauth2",
+      "status": "implemented",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/rest/oauth2.zig",
+        "packages/rest/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/rest/oauth2.zig",
+        "tests/rest/oauth2.zig"
+      ],
+      "docs": ["docs/oauth2.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/oauth2.mdx",
+      "live_verified": false
     }
   ]
 }
+

@@ -18,6 +18,7 @@
         "build.zig.zon",
         "src",
         "packages",
+        "examples",
         "third_party",
         "LICENSE",
         "NOTICE",
