@@ -1193,6 +1193,28 @@
       ],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L1178",
       "live_verified": false
+    },
+    {
+      "id": "gateway.events.polls",
+      "kind": "gateway-event",
+      "status": "implemented",
+      "typed": true,
+      "raw": true,
+      "symbols": [
+        "packages/protocol/events/polls.zig",
+        "packages/gateway/events/polls.zig"
+      ],
+      "tests": [
+        "packages/protocol/events/polls.zig",
+        "packages/gateway/events/polls.zig",
+        "tests/gateway/events/polls.zig"
+      ],
+      "docs": [
+        "docs/gateway.mdx",
+        "docs/status.mdx"
+      ],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L1618",
+      "live_verified": false
     }
   ]
 }

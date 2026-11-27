@@ -12,3 +12,4 @@ pub const roles = @import("roles.zig");
 pub const shared = @import("shared.zig");
 pub const threads = @import("threads.zig");
 pub const reactions = @import("reactions.zig");
+pub const polls = @import("polls.zig");

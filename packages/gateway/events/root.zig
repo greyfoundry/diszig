@@ -20,6 +20,7 @@ pub const invites = @import("invites.zig");
 pub const members = @import("members.zig");
 pub const messages = @import("messages.zig");
 pub const reactions = @import("reactions.zig");
+pub const polls = @import("polls.zig");
 pub const roles = @import("roles.zig");
 pub const threads = @import("threads.zig");
 
@@ -78,6 +79,8 @@ pub const Event = union(enum) {
     message_reaction_remove: reactions.ReactionRemove,
     message_reaction_remove_all: reactions.ReactionRemoveAll,
     message_reaction_remove_emoji: reactions.ReactionRemoveEmoji,
+    poll_vote_add: polls.PollVoteAdd,
+    poll_vote_remove: polls.PollVoteRemove,
     raw: Raw,
 };
 
@@ -168,6 +171,12 @@ pub fn decode(
                 .list_sync => |sync| .{ .thread_list_sync = sync },
                 .member_update => |member| .{ .thread_member_update = member },
                 .members_update => |updated_members| .{ .thread_members_update = updated_members },
+            };
+        }
+        if (try polls.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .vote_add => |vote| .{ .poll_vote_add = vote },
+                .vote_remove => |vote| .{ .poll_vote_remove = vote },
             };
         }
         if (try reactions.decode(allocator, name, payload, max_bytes)) |event| {
