@@ -1111,6 +1111,25 @@
       "docs": ["docs/voice.mdx"],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/voice-connections.mdx#L559",
       "live_verified": false
+    },
+    {
+      "id": "voice.session-orchestration-01",
+      "kind": "voice-session",
+      "status": "partial",
+      "typed": true,
+      "raw": false,
+      "symbols": [
+        "packages/voice/session.zig",
+        "packages/voice/root.zig",
+        "src/root.zig"
+      ],
+      "tests": [
+        "packages/voice/session.zig",
+        "tests/voice/session.zig"
+      ],
+      "docs": ["docs/voice.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/topics/voice-connections.mdx#L84",
+      "live_verified": false
     }
   ]
 }

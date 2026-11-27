@@ -27,6 +27,7 @@ pub const gateway = @import("gateway.zig");
 pub const audio = @import("audio.zig");
 pub const recovery = @import("recovery.zig");
 pub const rtp = @import("rtp.zig");
+pub const session = @import("session.zig");
 pub const transitions = @import("transitions.zig");
 pub const udp = @import("udp.zig");
 

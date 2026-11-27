@@ -64,6 +64,11 @@ not a platform limitation.
   finite resume/reconnect budget with capped exponential backoff. Fatal codes
   stop immediately; unknown codes are bounded reconnects; a successful
   Ready/Resumed clears the budgets.
+- **Session orchestration**: `packages/voice/session.zig` enforces the voice
+  handshake order (Hello → Identify → Ready → Select Protocol → Session
+  Description), selects AEAD without fallback, copies the 32-byte key into owned
+  storage, tracks the heartbeat interval, delegates DAVE transitions, and fails
+  closed on bad keys/order. The caller still owns sockets and payload buffers.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
   reported protocol 1 and produced a non-empty MLS key package (392-393 bytes
   across runs). That proves ABI feasibility; it is not a voice connection and
@@ -115,9 +120,10 @@ The optional Opus source is pinned separately; its licence ships as
    build option, with a `voice` feature that defaults off; add the required
    NOTICE entries and a platform support matrix. Default consumers still link
    nothing voice-related.
-4. **Voice gateway transport**: v8 handshake, Identify/Ready/Session Description,
-   heartbeats with `seq_ack`, buffered resume, close classification and bounded
-   reconnect. Stage channels can connect without the E2EE media path.
+4. **Voice gateway transport** (session state machine done): v8 handshake,
+   Identify/Ready/Session Description, heartbeat interval, buffered resume and
+   close classification. Remaining: WebSocket/UDP socket binding. Stage channels
+   can connect without the E2EE media path.
 5. **Transport primitives** (done): discovery framing with SSRC binding, RTP
    header parsing with CSRC/extension length, and AES-GCM/XChaCha rtpsize
    encryption with key rotation. Remaining: the UDP socket, select-protocol
