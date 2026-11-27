@@ -41,7 +41,8 @@ not a platform limitation.
   authentication exposes no plaintext. No socket is opened.
 - **DAVE transitions**: `packages/voice/transitions.zig` is the opcode 21-31
   state machine (epoch preparation, proposals, commit/welcome, ready, execute,
-  downgrade, explicit invalid-commit). `packages/voice/dave.zig` now binds the
+  downgrade, immediate transition 0, explicit invalid-commit plus key-package
+  reset), with JSON codecs for opcodes 21-24/31 and binary framing for 25-30. `packages/voice/dave.zig` now binds the
   public libdave session transition calls plus encryptor/decryptor handles; the
   probe exercises session creation, key packages and passthrough media frames.
   A real MLS commit/welcome needs voice-server payloads, which have not been

@@ -47,7 +47,10 @@ test "downgrade clears the encrypted epoch and mls failure is explicit" {
 
     _ = try session.onPrepareEpoch(2, 1);
     _ = try session.onAnnounceCommit(10);
-    try std.testing.expectEqual(transitions.Action.send_invalid_commit_welcome, session.onMlsFailure());
+    try std.testing.expectEqual(
+        transitions.Action.reset_and_send_key_package_with_invalid_commit,
+        session.onMlsFailure(),
+    );
 }
 
 test "closing stops the session" {
