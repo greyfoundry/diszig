@@ -27,7 +27,7 @@ not a platform limitation.
   `zig build check`.
 - **Control layer**: `packages/voice/gateway.zig` covers the documented voice
   opcode inventory (including binary DAVE opcodes), close-code classification,
-  AEAD negotiation with no plaintext fallback, main-Gateway state/server
+  AEAD negotiation (AES preferred, XChaCha required) with no plaintext fallback, main-Gateway state/server
   correlation in either order, endpoint normalization, Identify/Select Protocol/
   Heartbeat/Resume/Speaking/Media Sink Wants builders, JSON payload parsing and
   server binary framing. It opens no socket and sends no audio.

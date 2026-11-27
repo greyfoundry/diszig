@@ -152,17 +152,19 @@ pub const EncryptionMode = enum {
     }
 };
 
-/// Picks a documented AEAD mode from the server list. Unknown or empty lists
-/// fail explicitly; there is no plaintext or deprecated-mode fallback.
+/// Picks a documented AEAD mode from the server list. The docs prefer
+/// AES-256-GCM when available and require XChaCha20-Poly1305 otherwise.
+/// Unknown or empty lists fail explicitly; there is no plaintext or
+/// deprecated-mode fallback.
 pub fn selectEncryption(server_modes: []const []const u8) Error!EncryptionMode {
-    var has_aes = false;
+    var has_xchacha = false;
     for (server_modes) |mode| {
         if (EncryptionMode.parse(mode)) |known| {
-            if (known == .aead_xchacha20_poly1305_rtpsize) return known;
-            has_aes = true;
+            if (known == .aead_aes256_gcm_rtpsize) return known;
+            has_xchacha = true;
         }
     }
-    if (has_aes) return .aead_aes256_gcm_rtpsize;
+    if (has_xchacha) return .aead_xchacha20_poly1305_rtpsize;
     return error.NoSupportedEncryptionMode;
 }
 
@@ -517,14 +519,14 @@ test "close classification never resumes a fatal session" {
     try std.testing.expectEqual(CloseAction.reconnect, classifyClose(9999));
 }
 
-test "encryption negotiation prefers xchacha and never falls back to plaintext" {
-    try std.testing.expectEqual(
-        EncryptionMode.aead_xchacha20_poly1305_rtpsize,
-        try selectEncryption(&.{ "aead_aes256_gcm_rtpsize", "aead_xchacha20_poly1305_rtpsize" }),
-    );
+test "encryption negotiation prefers AES and never falls back to plaintext" {
     try std.testing.expectEqual(
         EncryptionMode.aead_aes256_gcm_rtpsize,
-        try selectEncryption(&.{"aead_aes256_gcm_rtpsize"}),
+        try selectEncryption(&.{ "aead_xchacha20_poly1305_rtpsize", "aead_aes256_gcm_rtpsize" }),
+    );
+    try std.testing.expectEqual(
+        EncryptionMode.aead_xchacha20_poly1305_rtpsize,
+        try selectEncryption(&.{"aead_xchacha20_poly1305_rtpsize"}),
     );
     try std.testing.expectError(error.NoSupportedEncryptionMode, selectEncryption(&.{"xsalsa20_poly1305"}));
     try std.testing.expectError(error.NoSupportedEncryptionMode, selectEncryption(&.{}));
