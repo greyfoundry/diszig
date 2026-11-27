@@ -777,6 +777,18 @@ pub fn build(b: *std.Build) void {
     });
     test_step.dependOn(&b.addRunArtifact(public_poll_event_tests).step);
 
+    const public_user_event_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/gateway/events/users.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "diszig", .module = diszig },
+            },
+        }),
+    });
+    test_step.dependOn(&b.addRunArtifact(public_user_event_tests).step);
+
     const public_builder_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("tests/builders/message.zig"),
