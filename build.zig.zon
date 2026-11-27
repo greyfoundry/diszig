@@ -26,9 +26,11 @@
         // third_party/libdave are not part of the source package.
         "third_party/websocket",
         "tools/fetch_libdave.py",
+        "tools/fetch_opus.py",
         "LICENSE",
         "NOTICE",
         "THIRD_PARTY_NOTICES.md",
         "README.md",
     },
 }
+

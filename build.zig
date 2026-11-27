@@ -8,6 +8,11 @@ pub fn build(b: *std.Build) void {
         "libdave-dir",
         "Path to an extracted official libdave release (include/, lib/, bin/) for the optional voice-probe step",
     );
+    const opus_dir = b.option(
+        []const u8,
+        "opus-dir",
+        "Path to the extracted pinned Opus source (opus-1.5.2) for the optional voice-audio-probe step",
+    );
 
     const protocol = b.addModule("protocol", .{
         .root_source_file = b.path("packages/protocol/root.zig"),
@@ -123,6 +128,57 @@ pub fn build(b: *std.Build) void {
             "import sys; print('voice-probe requires -Dlibdave-dir=<extracted official libdave release>'); sys.exit(2)",
         });
         voice_probe_step.dependOn(&fail.step);
+    }
+
+    // Optional Opus audio probe. Nothing links a codec without -Dopus-dir.
+    const voice_audio_step = b.step("voice-audio-probe", "Build and run the optional Opus encode/decode probe");
+    if (opus_dir) |dir| {
+        const opus_c_module = opusCMacroModule(b, target, optimize, dir);
+        const translate_opus = b.addTranslateC(.{
+            .root_source_file = lazyPath(b, b.pathJoin(&.{ dir, "include", "opus.h" })),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        translate_opus.addIncludePath(lazyPath(b, b.pathJoin(&.{ dir, "include" })));
+        const opus_c = translate_opus.createModule();
+
+        const opus_lib = b.addLibrary(.{
+            .name = "diszig-opus",
+            .root_module = opus_c_module,
+        });
+
+        const voice_opus = b.createModule(.{
+            .root_source_file = b.path("packages/voice/opus.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "voice", .module = voice },
+                .{ .name = "opus_c", .module = opus_c },
+            },
+        });
+        voice_opus.linkLibrary(opus_lib);
+
+        const probe = b.addExecutable(.{
+            .name = "opus_probe",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("tests/voice/opus_probe.zig"),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{
+                    .{ .name = "voice_opus", .module = voice_opus },
+                },
+            }),
+        });
+        const run = b.addRunArtifact(probe);
+        voice_audio_step.dependOn(&run.step);
+    } else {
+        const fail = b.addSystemCommand(&.{
+            "python",
+            "-c",
+            "import sys; print('voice-audio-probe requires -Dopus-dir=<extracted pinned Opus source>'); sys.exit(2)",
+        });
+        voice_audio_step.dependOn(&fail.step);
     }
 
     const zlib = addZlib(b, target, optimize);
@@ -784,6 +840,55 @@ pub fn build(b: *std.Build) void {
 
 fn lazyPath(b: *std.Build, text: []const u8) std.Build.LazyPath {
     return if (std.fs.path.isAbsolute(text)) .{ .cwd_relative = text } else b.path(text);
+}
+
+fn opusCMacroModule(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    dir: []const u8,
+) *std.Build.Module {
+    const module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    module.addIncludePath(lazyPath(b, b.pathJoin(&.{ dir, "include" })));
+    module.addIncludePath(lazyPath(b, dir));
+    module.addIncludePath(lazyPath(b, b.pathJoin(&.{ dir, "celt" })));
+    module.addIncludePath(lazyPath(b, b.pathJoin(&.{ dir, "silk" })));
+    module.addIncludePath(lazyPath(b, b.pathJoin(&.{ dir, "silk", "float" })));
+    module.addCMacro("OPUS_BUILD", "1");
+    module.addCMacro("VAR_ARRAYS", "1");
+    module.addCMacro("DISABLE_DEBUG_FLOAT", "1");
+
+    var files: std.ArrayList([]const u8) = .empty;
+    const io = b.graph.io;
+    const subtrees = [_][]const u8{ "src", "celt", "silk", "silk/float" };
+    for (subtrees) |sub| {
+        var directory = std.Io.Dir.cwd().openDir(io, b.pathJoin(&.{ dir, sub }), .{ .iterate = true }) catch {
+            @panic("opus-dir does not contain the expected source tree; run tools/fetch_opus.py");
+        };
+        defer directory.close(io);
+        var iterator = directory.iterate();
+        while (iterator.next(io) catch @panic("failed to read opus sources")) |entry| {
+            if (entry.kind != .file or !std.mem.endsWith(u8, entry.name, ".c")) continue;
+            if (isExcludedOpusSource(entry.name)) continue;
+            files.append(b.allocator, b.pathJoin(&.{ sub, entry.name })) catch @panic("out of memory collecting opus sources");
+        }
+    }
+    module.addCSourceFiles(.{
+        .root = lazyPath(b, dir),
+        .files = files.items,
+        .flags = &.{"-std=c99"},
+    });
+    return module;
+}
+
+fn isExcludedOpusSource(name: []const u8) bool {
+    return std.mem.eql(u8, name, "opus_demo.c") or
+        std.mem.eql(u8, name, "repacketizer_demo.c") or
+        std.mem.eql(u8, name, "opus_compare.c");
 }
 
 /// Build the pinned zlib sources once and link them into the modules that need

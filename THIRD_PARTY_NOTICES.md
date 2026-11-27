@@ -82,3 +82,13 @@ No libdave binary is distributed by this repository.
 An Opus codec is not yet selected; its licence and notice will be added when the
 audio phase pins an artifact.
 
+
+## Opus (optional audio)
+
+Source: https://github.com/xiph/opus
+
+Selected revision: v1.5.2, pinned by `tools/fetch_opus.py` to Xiph's release
+asset with SHA-256 `65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1`.
+Not bundled. Optional audio builds fetch the pinned source and compile it with Zig.
+The BSD-style licence text ships as `packages/voice/licenses/opus.txt`.
+

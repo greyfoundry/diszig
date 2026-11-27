@@ -53,7 +53,11 @@ not a platform limitation.
   frame geometry, a 20 ms pacer with bounded catch-up, speaking/silence policy,
   cancellation, a fixed-capacity jitter buffer with explicit loss policy,
   receive consent, and encoder/decoder vtables. The default build links no codec;
-  tests use a deterministic fake. Native Opus is not integrated yet.
+  tests use a deterministic fake.
+- **Optional native Opus**: `packages/voice/opus.zig` implements those vtables
+  with the pinned official Opus v1.5.2 sources, compiled by Zig. The optional
+  probe encodes and decodes a real 20 ms frame and is excluded from the default
+  build.
 - `examples/voice.zig` demonstrates the isolated pipeline with no socket, audio
   device or codec dependency.
 - On 2026-11-27 the Windows x64 probe ran against the verified v1.3.0 asset,
@@ -64,6 +68,8 @@ not a platform limitation.
 ```bash
 python tools/fetch_libdave.py
 zig build voice-probe -Dlibdave-dir=third_party/libdave/v1.3.0/windows-x64
+python tools/fetch_opus.py
+zig build voice-audio-probe -Dopus-dir=third_party/opus/v1.5.2/src/opus-1.5.2
 ```
 
 ### Pinned assets
@@ -80,6 +86,8 @@ Windows ARM64 has no official libdave asset and is not claimed. The archive
 bundles libdave (MIT), BoringSSL, mlspp and nlohmann-json licences; those texts
 are shipped under `packages/voice/licenses/` and summarised in
 `THIRD_PARTY_NOTICES.md`. No libdave binary is distributed by this repository.
+The optional Opus source is pinned separately; its licence ships as
+`packages/voice/licenses/opus.txt`.
 
 ## Why there is no partial voice path
 
@@ -115,10 +123,9 @@ are shipped under `packages/voice/licenses/` and summarised in
    encryptor/decryptor handles through libdave. Live MLS group transitions need
    authorization and real voice-server payloads. MLS state is never
    reimplemented in Zig.
-7. **Audio** (pipeline scaffolding done): pacing, bounded jitter/loss policy,
-   cancellation, consent and codec vtables with deterministic tests. Remaining:
-   pin and link official Opus, then ratcheted media send/receive with explicit
-   ownership and allocation-failure tests.
+7. **Audio** (done non-live): pacing, bounded jitter/loss policy, cancellation,
+   consent and codec vtables, plus optional native Opus via the pinned official
+   sources. Remaining: ratcheted media send/receive through RTP and live audio.
 8. **Recovery and packaging**: connection recovery tests, per-target consumer
    builds, reproducible artifact fetching, shutdown/join guarantees and
    resource bounds.

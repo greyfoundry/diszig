@@ -44,3 +44,6 @@
 
 # Downloaded official libdave release artifacts (pinned; see tools/fetch_libdave.py).
 /third_party/libdave/
+
+# Downloaded official Opus source (pinned; see tools/fetch_opus.py).
+/third_party/opus/
