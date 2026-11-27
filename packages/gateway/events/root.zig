@@ -15,6 +15,7 @@ pub const channels = @import("channels.zig");
 pub const commands = @import("commands.zig");
 pub const guilds = @import("guilds.zig");
 pub const integrations = @import("integrations.zig");
+pub const interactions = @import("interactions.zig");
 
 pub const Ready = struct {
     session_id: []const u8,
@@ -47,6 +48,7 @@ pub const Event = union(enum) {
     integration_create: integrations.Integration,
     integration_update: integrations.Integration,
     integration_delete: integrations.IntegrationDelete,
+    interaction_create: interactions.Interaction,
     raw: Raw,
 };
 
@@ -93,6 +95,11 @@ pub fn decode(
                 .create => |integration| .{ .integration_create = integration },
                 .update => |integration| .{ .integration_update = integration },
                 .delete => |deleted| .{ .integration_delete = deleted },
+            };
+        }
+        if (try interactions.decode(allocator, name, payload, max_bytes)) |event| {
+            return switch (event) {
+                .create => |interaction| .{ .interaction_create = interaction },
             };
         }
         return .{ .raw = .{ .name = name, .sequence = sequence, .payload = payload } };

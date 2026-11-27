@@ -30,19 +30,8 @@ pub const OverwriteType = enum(u8) {
     member = 1,
 };
 
-/// Permission bitfields arrive as decimal strings.
-pub const PermissionBits = struct {
-    bits: u64,
-
-    pub fn jsonParse(
-        allocator: std.mem.Allocator,
-        source: anytype,
-        options: std.json.ParseOptions,
-    ) !@This() {
-        const text = try std.json.innerParse([]const u8, allocator, source, options);
-        return .{ .bits = try std.fmt.parseInt(u64, text, 10) };
-    }
-};
+/// Permission bitfields arrive as decimal strings. Shared with interactions.
+pub const PermissionBits = @import("shared.zig").PermissionBits;
 
 pub const Overwrite = struct {
     id: Snowflake,

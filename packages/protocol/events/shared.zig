@@ -6,6 +6,20 @@
 const std = @import("std");
 const Snowflake = @import("../snowflake.zig").Snowflake;
 
+/// Permission bitfields arrive as decimal strings.
+pub const PermissionBits = struct {
+    bits: u64,
+
+    pub fn jsonParse(
+        allocator: std.mem.Allocator,
+        source: anytype,
+        options: std.json.ParseOptions,
+    ) !@This() {
+        const text = try std.json.innerParse([]const u8, allocator, source, options);
+        return .{ .bits = try std.fmt.parseInt(u64, text, 10) };
+    }
+};
+
 pub const User = struct {
     id: Snowflake,
     username: []const u8,

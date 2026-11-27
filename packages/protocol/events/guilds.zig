@@ -10,6 +10,7 @@ const json = @import("../json.zig");
 const Snowflake = @import("../snowflake.zig").Snowflake;
 
 pub const User = @import("shared.zig").User;
+pub const PermissionBits = @import("shared.zig").PermissionBits;
 
 pub const Guild = struct {
     id: Snowflake,

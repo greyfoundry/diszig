@@ -429,6 +429,26 @@
       "docs": ["docs/gateway.mdx", "docs/status.mdx"],
       "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L1048",
       "live_verified": false
+    },
+    {
+      "id": "gateway.events.interactions",
+      "kind": "gateway-event",
+      "status": "implemented",
+      "typed": true,
+      "raw": true,
+      "symbols": [
+        "packages/protocol/events/interactions.zig",
+        "packages/protocol/events/shared.zig",
+        "packages/gateway/events/interactions.zig"
+      ],
+      "tests": [
+        "packages/protocol/events/interactions.zig",
+        "packages/gateway/events/interactions.zig",
+        "tests/gateway/events/interactions.zig"
+      ],
+      "docs": ["docs/gateway.mdx", "docs/status.mdx"],
+      "source": "https://github.com/discord/discord-api-docs/blob/5a61ef8ebaf5e5702d3dc80e052d57001229ab1b/developers/events/gateway-events.mdx#L1578",
+      "live_verified": false
     }
   ]
 }
