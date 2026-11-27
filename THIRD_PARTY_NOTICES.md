@@ -67,3 +67,18 @@ Copyright notice:
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
+
+## libdave (optional voice)
+
+Source: https://github.com/discord/libdave
+
+Selected revision: tag `v1.3.0/cpp`, commit `b5463c443df74db75a713c775b09a847621e6d62`, MIT.
+Not bundled in this source package. Optional voice builds fetch Discord's official
+release asset (SHA-256 pinned in `tools/fetch_libdave.py`) and link its C ABI.
+The official archive bundles BoringSSL, mlspp and nlohmann-json; their licence texts
+are shipped under `packages/voice/licenses/` together with libdave's MIT text.
+No libdave binary is distributed by this repository.
+
+An Opus codec is not yet selected; its licence and notice will be added when the
+audio phase pins an artifact.
+

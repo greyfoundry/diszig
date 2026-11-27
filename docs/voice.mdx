@@ -52,8 +52,9 @@ zig build voice-probe -Dlibdave-dir=third_party/libdave/v1.3.0/windows-x64
 | macOS ARM64 | `libdave-macOS-ARM64-boringssl.zip` | `111e46c61f2fa7ef23c7a2f7840330e59bcdb75e77728d2244536a031e601e02` |
 
 Windows ARM64 has no official libdave asset and is not claimed. The archive
-bundles libdave (MIT), BoringSSL, mlspp and nlohmann-json licences; Diszig must
-carry those notices when it distributes a linked build.
+bundles libdave (MIT), BoringSSL, mlspp and nlohmann-json licences; those texts
+are shipped under `packages/voice/licenses/` and summarised in
+`THIRD_PARTY_NOTICES.md`. No libdave binary is distributed by this repository.
 
 ## Why there is no partial voice path
 
